@@ -1,206 +1,80 @@
-// UTM.h
+/******************************************************************************
+ * Copyright 2018 The Apollo Authors. All Rights Reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *****************************************************************************/
+// Based on https://github.com/ApolloAuto/apollo-contrib
+/**
+ * @file UTM.h
+ * @brief Coordinate transition program
+ */
 
-// Original Javascript by Chuck Taylor
-// Port to C++ by Alex Hajnal
-//
-// *** THIS CODE USES 32-BIT FLOATS BY DEFAULT ***
-// *** For 64-bit double-precision edit this file: undefine FLOAT_32 and define FLOAT_64 (see below)
-//
-// This is a simple port of the code on the Geographic/UTM Coordinate Converter (1) page from Javascript to C++.
-// Using this you can easily convert between UTM and WGS84 (latitude and longitude).
-// Accuracy seems to be around 50cm (I suspect rounding errors are limiting precision).
-// This code is provided as-is and has been minimally tested; enjoy but use at your own risk!
-// The license for UTM.cpp and UTM.h is the same as the original Javascript:
-// "The C++ source code in UTM.cpp and UTM.h may be copied and reused without restriction."
-//
-// 1) http://home.hiwaay.net/~taylorc/toolbox/geography/geoutm.html
-
-#ifndef UTM_H
-#define UTM_H
-
-// Choose floating point precision:
-
-// 32-bit (for Teensy 3.5/3.6 ARM boards, etc.)
-//#define FLOAT_32
-
-// 64-bit (for desktop/server use)
-#define FLOAT_64
-
-#ifdef FLOAT_64
-#define FLOAT double
-#define SIN sin
-#define COS cos
-#define TAN tan
-#define POW pow
-#define SQRT sqrt
-#define FLOOR floor
-
-#else
-#ifdef FLOAT_32
-#define FLOAT float
-#define SIN sinf
-#define COS cosf
-#define TAN tanf
-#define POW powf
-#define SQRT sqrtf
-#define FLOOR floorf
-
-#endif
-#endif
+#ifndef V2X_APP_POLICIES_COORDINATE_TRANSITION_COORDINATE_TRANSITION_H
+#define V2X_APP_POLICIES_COORDINATE_TRANSITION_COORDINATE_TRANSITION_H
 
 #include <math.h>
+#include <iostream>
 
-#define pi 3.14159265358979
+class CoordinateTransition {
+ public:
+  explicit CoordinateTransition();
+  ~CoordinateTransition() {}
+  // Function that init
+  void Init();
+  // Function that convert LatitudeLongitude pair to x and y coordinates
+  // in the Universal Transverse Mercator projection
+  void LatLonToUTMXY(const double lat, const double lon, double& utm_x,
+                     double& utm_y);
+  // Function that convert XY coordinates in the Universal Transverse Mercator
+  // projection to LatitudeLongitude pair
+  void UTMXYToLatLon(double utm_x, double utm_y, double& lat, double& lon);
+  // Function that convert Theta to Heading, velocity_x and velocity_y(m/s)
+  void ThetaToHeading(const double theta_radian, double velocity_x,
+                      double velocity_y, double& heading);
+  // Function that convert Deg to Rad
+  double DegToRad(const double deg) {
+    return (deg / 180.0 * kPI);
+  }
+  // Function that Rad Theta to Deg
+  double RadToDeg(const double rad) {
+    return (rad / kPI * 180.0);
+  }
+  const double kPI = 3.14159265358979323846;
+  const double kEmA = 6378137.0;
+  const double kEmB = 6356752.3142451;
+  const double kUTMScaleFactor = 0.9996;
+  const double kUTMXCompensation = 500000.0;
+  const double kUTMYCompensation = 10000000.0;
 
-/* Ellipsoid model constants (actual values here are for WGS84) */
-#define sm_a 6378137.0
-#define sm_b 6356752.314
-#define sm_EccSquared 6.69437999013e-03
-
-#define UTMScaleFactor 0.9996
-class CoordinateTransition
-{
-public:
-    // DegToRad
-    // Converts degrees to radians.
-    FLOAT DegToRad(FLOAT deg);
-
-    // RadToDeg
-    // Converts radians to degrees.
-    FLOAT RadToDeg(FLOAT rad);
-
-    // ArcLengthOfMeridian
-    // Computes the ellipsoidal distance from the equator to a point at a
-    // given latitude.
-    //
-    // Reference: Hoffmann-Wellenhof, B., Lichtenegger, H., and Collins, J.,
-    // GPS: Theory and Practice, 3rd ed.  New York: Springer-Verlag Wien, 1994.
-    //
-    // Inputs:
-    //     phi - Latitude of the point, in radians.
-    //
-    // Globals:
-    //     sm_a - Ellipsoid model major axis.
-    //     sm_b - Ellipsoid model minor axis.
-    //
-    // Returns:
-    //     The ellipsoidal distance of the point from the equator, in meters.
-    FLOAT ArcLengthOfMeridian(FLOAT phi);
-
-    // UTMCentralMeridian
-    // Determines the central meridian for the given UTM zone.
-    //
-    // Inputs:
-    //     zone - An integer value designating the UTM zone, range [1,60].
-    //
-    // Returns:
-    //   The central meridian for the given UTM zone, in radians
-    //   Range of the central meridian is the radian equivalent of [-177,+177].
-    FLOAT UTMCentralMeridian(int zone);
-
-    // FootpointLatitude
-    //
-    // Computes the footpoint latitude for use in converting transverse
-    // Mercator coordinates to ellipsoidal coordinates.
-    //
-    // Reference: Hoffmann-Wellenhof, B., Lichtenegger, H., and Collins, J.,
-    //   GPS: Theory and Practice, 3rd ed.  New York: Springer-Verlag Wien, 1994.
-    //
-    // Inputs:
-    //   y - The UTM northing coordinate, in meters.
-    //
-    // Returns:
-    //   The footpoint latitude, in radians.
-    FLOAT FootpointLatitude(FLOAT y);
-
-    // MapLatLonToXY
-    // Converts a latitude/longitude pair to x and y coordinates in the
-    // Transverse Mercator projection.  Note that Transverse Mercator is not
-    // the same as UTM; a scale factor is required to convert between them.
-    //
-    // Reference: Hoffmann-Wellenhof, B., Lichtenegger, H., and Collins, J.,
-    // GPS: Theory and Practice, 3rd ed.  New York: Springer-Verlag Wien, 1994.
-    //
-    // Inputs:
-    //    phi - Latitude of the point, in radians.
-    //    lambda - Longitude of the point, in radians.
-    //    lambda0 - Longitude of the central meridian to be used, in radians.
-    //
-    // Outputs:
-    //    x - The x coordinate of the computed point.
-    //    y - The y coordinate of the computed point.
-    //
-    // Returns:
-    //    The function does not return a value.
-    void MapLatLonToXY(FLOAT phi, FLOAT lambda, FLOAT lambda0, FLOAT &x, FLOAT &y);
-
-    // MapXYToLatLon
-    // Converts x and y coordinates in the Transverse Mercator projection to
-    // a latitude/longitude pair.  Note that Transverse Mercator is not
-    // the same as UTM; a scale factor is required to convert between them.
-    //
-    // Reference: Hoffmann-Wellenhof, B., Lichtenegger, H., and Collins, J.,
-    //   GPS: Theory and Practice, 3rd ed.  New York: Springer-Verlag Wien, 1994.
-    //
-    // Inputs:
-    //   x - The easting of the point, in meters.
-    //   y - The northing of the point, in meters.
-    //   lambda0 - Longitude of the central meridian to be used, in radians.
-    //
-    // Outputs:
-    //   phi    - Latitude in radians.
-    //   lambda - Longitude in radians.
-    //
-    // Returns:
-    //   The function does not return a value.
-    //
-    // Remarks:
-    //   The local variables Nf, nuf2, tf, and tf2 serve the same purpose as
-    //   N, nu2, t, and t2 in MapLatLonToXY, but they are computed with respect
-    //   to the footpoint latitude phif.
-    //
-    //   x1frac, x2frac, x2poly, x3poly, etc. are to enhance readability and
-    //   to optimize computations.
-    void MapXYToLatLon(FLOAT x, FLOAT y, FLOAT lambda0, FLOAT &phi, FLOAT &lambda);
-
-    // LatLonToUTMXY
-    // Converts a latitude/longitude pair to x and y coordinates in the
-    // Universal Transverse Mercator projection.
-    //
-    // Inputs:
-    //   lat - Latitude of the point, in radians.
-    //   lon - Longitude of the point, in radians.
-    //   zone - UTM zone to be used for calculating values for x and y.
-    //          If zone is less than 1 or greater than 60, the routine
-    //          will determine the appropriate zone from the value of lon.
-    //
-    // Outputs:
-    //   x - The x coordinate (easting) of the computed point. (in meters)
-    //   y - The y coordinate (northing) of the computed point. (in meters)
-    //
-    // Returns:
-    //   The UTM zone used for calculating the values of x and y.
-    int LatLonToUTMXY(FLOAT lat, FLOAT lon, int zone, FLOAT &x, FLOAT &y);
-
-    // UTMXYToLatLon
-    //
-    // Converts x and y coordinates in the Universal Transverse Mercator//   The UTM zone parameter should be in the range [1,60].
-
-    // projection to a latitude/longitude pair.
-    //
-    // Inputs:
-    // x - The easting of the point, in meters.
-    // y - The northing of the point, in meters.
-    // zone - The UTM zone in which the point lies.
-    // southhemi - True if the point is in the southern hemisphere;
-    //               false otherwise.
-    //
-    // Outputs:
-    // lat - The latitude of the point, in radians.
-    // lon - The longitude of the point, in radians.
-    //
-    // Returns:
-    // The function does not return a value.
-    void UTMXYToLatLon(FLOAT x, FLOAT y, int zone, bool southhemi, FLOAT &lat, FLOAT &lon);
+ private:
+  // Function that mathematical formula to achieve LatLon to XY
+  void MathLanLonToXY(const double lat_radian, const double lon_radian,
+                      const double central_meridian_radian, double& x,
+                      double& y);
+  // Function that mathematical formula to achieve XY to LatLon
+  void MathXYToLanLon(const double x, const double y,
+                      const double central_meridian_radian, double& lat_radian,
+                      double& lon_radian);
+  // Function that computes the footpoint latitude for use
+  // in converting transverse Mercator coordinates to ellipsoidal coordinates
+  double FootpointLatitude(const double y);
+  // Function that computes the ellipsoidal distance from the equator to
+  // a point at a given latitude
+  double ArcLengthOfMeridian(const double lat_radian);
+  // Function that computes CentralMeridian
+  double UTMCentralMeridian(const double lon);
+  int zone_;
+  bool southhemi_;
 };
+
 #endif

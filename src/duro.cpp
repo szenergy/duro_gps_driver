@@ -105,7 +105,7 @@ void pos_ll_callback(u16 sender_id, u8 len, u8 msg[], void *context)
     fix.longitude = latlonmsg->lon;
     nav_fix_pub.publish(fix);
     double x = 0, y = 0;
-    coordinate_transition.LatLonToUTMXY(latlonmsg->lat, latlonmsg->lon, -1, x, y);
+    coordinate_transition.LatLonToUTMXY(latlonmsg->lat, latlonmsg->lon, x, y);
     odom.header.stamp = ros::Time::now();
     odom.pose.pose.position.x = x;
     odom.pose.pose.position.y = y;
