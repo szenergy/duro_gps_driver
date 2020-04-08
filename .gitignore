@@ -1,0 +1,8 @@
+# vs code 
+.vscode/*
+
+# cmake
+build/*
+devel/*
+logs/*
+.catkin_tools/*
