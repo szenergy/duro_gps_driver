@@ -103,6 +103,13 @@ void pos_ll_callback(u16 sender_id, u8 len, u8 msg[], void *context)
   {
     fix.latitude = latlonmsg->lat;
     fix.longitude = latlonmsg->lon;
+    // covariance matrix
+    double h_covariance = pow(latlonmsg->h_accuracy * 1e-3, 2);  // Convert mm to m and take the ^2 for going from std to cov
+    double v_covariance = pow(latlonmsg->v_accuracy * 1e-3, 2);  // Convert mm to m and take the ^2 for going from std to cov
+    fix.position_covariance[0]  = h_covariance;   // x = 0, 0
+    fix.position_covariance[4]  = h_covariance;   // y = 1, 1 
+    fix.position_covariance[8]  = v_covariance;   // z = 2, 2 
+    fix.position_covariance_type = 2; // COVARIANCE_TYPE_DIAGONAL_KNOWN = 2
     nav_fix_pub.publish(fix);
     double x = 0, y = 0;
     coordinate_transition.LatLonToUTMXY(latlonmsg->lat, latlonmsg->lon, x, y);
@@ -123,7 +130,7 @@ void pos_ll_callback(u16 sender_id, u8 len, u8 msg[], void *context)
 
     switch (latlonmsg->flags)
     {
-    case 9: // 1 // TODO: check
+    case 9: // 1 
       stflags.data = "Single Point Position (SPP)";
       break;
     case 10: // 2

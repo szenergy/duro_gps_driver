@@ -1,7 +1,7 @@
 # Duro Inertial GPS Driver
 ## Overview
 
-This is a C++ ROS driver for Swiftnaw Duro Inertial (Piksi Multi Inertial) GPS / GNSS Receivers. The code is based on offical Swiftnav libswiftnav C example and Alex Hajnal's UTM converter code.
+This is a C++ ROS driver for Swiftnaw Duro Inertial (Piksi Multi Inertial) GPS / GNSS Receivers. The code is based on offical Swiftnav libswiftnav C example and <del>Alex Hajnal's</del> Apollo UTM converter code.
 
 ## Scope
 The current version supports *only* (not tested elsewhere):
