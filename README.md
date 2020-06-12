@@ -16,7 +16,7 @@ Install libsbp (Swift binary protocol library) C client library from GitHub: htt
 It is detailed in github, but the main steps are:
 ```
 sudo apt-get install build-essential pkg-config cmake doxygen check
-cd ~; mkdir git; cd git     # eg create a git folder, the forder name can be different
+cd ~; mkdir git; cd git     # eg create a git folder, the folder name can be different
 git clone https://github.com/swift-nav/libsbp.git
 cd libsbp/c/
 git submodule update --init --recursive
@@ -28,25 +28,40 @@ sudo make install
 This will create some files in `/usr/local/include/libsbp/` and in `/usr/local/lib`.
 
 ### 2. step
-Catkin build `duro-ros`.
-Todo: @rudolfkrecht
+Clone the duro_gps_driver package into your Catkin workspace. 
+Navigate to the root of your Catkin workspace. Source your setup.bash file. Build the `duro-ros` package using Catkin:
+```
+source devel/setup.bash
+catkin build `duro-ros`
+```
 
 ## Settings 
 Enable MSG ID 544 and 545 in swift console. These orientation messages are not enabled in default configuration.
 The MSG ID is defined in the headers, e.g. `#define SBP_MSG_ORIENT_QUAT 0x0220` which is decimal `544`.
-Todo: @rudolfkrecht
 
 ## Run
-Todo: @rudolfkrecht
+Make sure that `roscore` is running. 
+The `duro-gps` driver can be run using the `rosrun` command. It is necessary to provide your device's IP address and port number. 
 E.g:
 ```
 rosrun duro-gps duronode _address:=192.168.0.222 _port:=55555
-rosrun duro-gps duronode _address:=192.168.1.222 _port:=55555
-rosrun duro-gps duronode
 ```
 
 ## Topics
-Todo: @rudolfkrecht
+`duro-gps duronode` publishes the following topics:
+```
+/gps/duro/current_pose
+/gps/duro/fix
+/gps/duro/gyro
+/gps/duro/imu
+/gps/duro/mag
+/gps/duro/odom
+/gps/duro/rollpitchyaw
+/gps/duro/status_flag
+/gps/duro/status_string
+/gps/duro/tmp
+/gps/duro/utmzone
+```
 An important topic is `/gps/duro/current_pose` which is `geometry_msgs/PoseStamped` type in UTM (https://en.wikipedia.org/wiki/Universal_Transverse_Mercator_coordinate_system) eg:
 
 ``` c
