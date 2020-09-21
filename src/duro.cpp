@@ -14,6 +14,7 @@
 #include "geometry_msgs/Vector3.h"
 #include "geometry_msgs/PoseStamped.h"
 #include "tf/transform_broadcaster.h"
+#include <tf2_ros/static_transform_broadcaster.h>
 // standard c headers
 #include <sys/socket.h>
 #include <arpa/inet.h>
@@ -55,6 +56,10 @@ static sbp_msg_callbacks_node_t imu_callback_node;
 static sbp_msg_callbacks_node_t mag_callback_node;
 nav_msgs::Odometry odom;
 geometry_msgs::PoseStamped pose_msg;
+/* // Debug broadcast tf
+geometry_msgs::TransformStamped static_transformStamped;
+*/
+
 CoordinateTransition coordinate_transition;
 
 int socket_desc = -1;
@@ -121,7 +126,15 @@ void pos_ll_callback(u16 sender_id, u8 len, u8 msg[], void *context)
     pose_msg.header.stamp = ros::Time::now();
     pose_msg.pose.position.x = x;
     pose_msg.pose.position.y = y;
-    pose_msg.pose.position.z = latlonmsg->height;
+    pose_msg.pose.position.z = 160; //latlonmsg->height;
+    /* // Debug broadcast tf
+    static_transformStamped.header.stamp = ros::Time::now();
+    static_transformStamped.header.frame_id = "/map";
+    static_transformStamped.child_frame_id = "/duro";
+    static_transformStamped.transform.translation.x = x;
+    static_transformStamped.transform.translation.y = y;
+    static_transformStamped.transform.translation.z = 160;
+    */
     pose_pub.publish(pose_msg); //
     std_msgs::UInt8 flags;
     flags.data = latlonmsg->flags;
@@ -177,6 +190,14 @@ void orientation_callback(u16 sender_id, u8 len, u8 msg[], void *context)
   pose_msg.pose.orientation.y = tf_aligned.x() * -1; // left-handerd / right handed orientation
   pose_msg.pose.orientation.z = tf_aligned.z();      // left-handerd / right handed orientation
   pose_msg.header.frame_id = "duro";
+  /* // Debug broadcast tf
+  static tf2_ros::StaticTransformBroadcaster static_broadcaster;
+  static_transformStamped.transform.rotation.x = x;
+  static_transformStamped.transform.rotation.y = y;
+  static_transformStamped.transform.rotation.z = z;
+  static_transformStamped.transform.rotation.w = w;
+  static_broadcaster.sendTransform(static_transformStamped);
+  */
 }
 
 void orientation_euler_callback(u16 sender_id, u8 len, u8 msg[], void *context)
