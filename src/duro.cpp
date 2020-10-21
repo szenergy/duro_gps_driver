@@ -56,8 +56,8 @@ static sbp_msg_callbacks_node_t imu_callback_node;
 static sbp_msg_callbacks_node_t mag_callback_node;
 nav_msgs::Odometry odom;
 geometry_msgs::PoseStamped pose_msg;
- // Debug broadcast tf
-geometry_msgs::TransformStamped static_transformStamped;
+// Debug broadcast tf
+// geometry_msgs::TransformStamped static_transformStamped;
 
 
 CoordinateTransition coordinate_transition;
@@ -128,12 +128,12 @@ void pos_ll_callback(u16 sender_id, u8 len, u8 msg[], void *context)
     pose_msg.pose.position.y = y;
     pose_msg.pose.position.z = 0; //latlonmsg->height;
     // Debug broadcast tf
-    static_transformStamped.header.stamp = ros::Time::now();
-    static_transformStamped.header.frame_id = "/map";
-    static_transformStamped.child_frame_id = "/duro";
-    static_transformStamped.transform.translation.x = x;
-    static_transformStamped.transform.translation.y = y;
-    static_transformStamped.transform.translation.z = 0;
+    //static_transformStamped.header.stamp = ros::Time::now();
+    //static_transformStamped.header.frame_id = "/map";
+    //static_transformStamped.child_frame_id = "/duro";
+    //static_transformStamped.transform.translation.x = x;
+    //static_transformStamped.transform.translation.y = y;
+    //static_transformStamped.transform.translation.z = 0;
     pose_pub.publish(pose_msg); //
     std_msgs::UInt8 flags;
     flags.data = latlonmsg->flags;
@@ -189,13 +189,13 @@ void orientation_callback(u16 sender_id, u8 len, u8 msg[], void *context)
   pose_msg.pose.orientation.y = tf_aligned.x() * -1; // left-handerd / right handed orientation
   pose_msg.pose.orientation.z = tf_aligned.z();      // left-handerd / right handed orientation
   pose_msg.header.frame_id = "map";
- // Debug broadcast tf
-  static tf2_ros::StaticTransformBroadcaster static_broadcaster;
-  static_transformStamped.transform.rotation.x = x;
-  static_transformStamped.transform.rotation.y = y;
-  static_transformStamped.transform.rotation.z = z;
-  static_transformStamped.transform.rotation.w = w;
-  static_broadcaster.sendTransform(static_transformStamped);
+  // Debug broadcast tf
+  //static tf2_ros::StaticTransformBroadcaster static_broadcaster;
+  //static_transformStamped.transform.rotation.x = x;
+  //static_transformStamped.transform.rotation.y = y;
+  //static_transformStamped.transform.rotation.z = z;
+  //static_transformStamped.transform.rotation.w = w;
+  //static_broadcaster.sendTransform(static_transformStamped);
 }
 
 void orientation_euler_callback(u16 sender_id, u8 len, u8 msg[], void *context)
@@ -272,12 +272,12 @@ int main(int argc, char **argv)
   status_stri_pub = n.advertise<std_msgs::String>("gps/duro/status_string", 100);
   tmp_pub = n.advertise<std_msgs::Float64>("gps/duro/tmp", 100);
 
-  n.getParam("address", tcp_ip_addr);
-  n.getParam("port", tcp_ip_port);
+  n.getParam("duro_address", tcp_ip_addr);
+  n.getParam("duro_port", tcp_ip_port);
   if (tcp_ip_addr.length() < 3)
   {
-    ROS_WARN("No or wrong parameters provided, assuming _address:=192.168.1.222 _port:=55555");
-    tcp_ip_addr = "192.168.1.222";
+    ROS_WARN("No or wrong parameters provided, assuming _address:=192.168.1.10 _port:=55555");
+    tcp_ip_addr = "192.168.1.10";
     tcp_ip_port = 55555;
   }
   else if (tcp_ip_port == -1)

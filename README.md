@@ -44,7 +44,7 @@ Make sure that `roscore` is running.
 The `duro-gps` driver can be run using the `rosrun` command. It is necessary to provide your device's IP address and port number. 
 E.g:
 ```
-rosrun duro-gps duronode _address:=192.168.0.222 _port:=55555
+rosrun duro-gps duronode _duro_address:=192.168.0.222 _duro_port:=55555
 ```
 
 ## Topics
@@ -70,12 +70,12 @@ header:
   stamp: 
     secs: 1580388036
     nsecs: 641742448
-  frame_id: ''
+  frame_id: 'map'
 pose: 
   position: 
     x: 697214.762607
     y: 5285721.97968
-    z: 157.104031829
+    z: 0.0
   orientation: 
     x: 0.00819693645462
     y: 0.00343747669831
