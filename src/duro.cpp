@@ -136,8 +136,16 @@ void pos_ll_callback(u16 sender_id, u8 len, u8 msg[], void *context)
   // nav fix (latlon) message over ROS
   fix.header.stamp = ros::Time::now();
 
-  int ins_mode = (latlonmsg->flags & INS_MODE_MASK) >> INS_MODE_POSITION;
+  int ins_mode = (latlonmsg->flags & INS_MODE_MASK) >> INS_MODE_POSITION;  // INS mode seems to remain 0...
   int fix_mode = (latlonmsg->flags & FIX_MODE_MASK) >> FIX_MODE_POSITION;
+
+  std_msgs::String stflags;
+  stflags.data = "Invalid";
+
+  std_msgs::UInt8 fix_mode_msg;
+  fix_mode_msg.data = fix_mode;
+  status_flag_pub.publish(fix_mode_msg);  // 0: Invalid 1: Single Point Position (SPP) 2: Differential GNSS (DGNSS) 3:
+                                          // Float RTK 4: Fixed RTK 5: Dead Reckoning 6: SBAS Position
 
   if (fix_mode > fix_modes::INVALID)
   {
@@ -170,13 +178,6 @@ void pos_ll_callback(u16 sender_id, u8 len, u8 msg[], void *context)
     //static_transformStamped.transform.translation.y = y;
     //static_transformStamped.transform.translation.z = 0;
     pose_pub.publish(pose_msg); //
-
-    std_msgs::UInt8 fix_mode_msg;
-    fix_mode_msg.data = fix_mode;
-    status_flag_pub.publish(fix_mode_msg);  // 0: Invalid 1: Single Point Position (SPP) 2: Differential GNSS (DGNSS) 3:
-                                            // Float RTK 4: Fixed RTK 5: Dead Reckoning 6: SBAS Position
-
-    std_msgs::String stflags;
 
     switch (fix_mode)
     {
@@ -216,9 +217,9 @@ void pos_ll_callback(u16 sender_id, u8 len, u8 msg[], void *context)
         break;
     }
 
-    status_stri_pub.publish(stflags);
     nav_fix_pub.publish(fix);
   }
+  status_stri_pub.publish(stflags);
 }
 
 void orientation_callback(u16 sender_id, u8 len, u8 msg[], void *context)
