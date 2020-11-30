@@ -140,24 +140,24 @@ void pos_ll_callback(u16 sender_id, u8 len, u8 msg[], void *context)
     status_flag_pub.publish(flags); // 0: Invalid 1: Single Point Position (SPP) 2: Differential GNSS (DGNSS) 3: Float RTK 4: Fixed RTK 5: Dead Reckoning 6: SBAS Position
     std_msgs::String stflags;
 
-    switch (latlonmsg->flags)
+    switch (latlonmsg->flags & 7)
     {
-    case 9: // 1 
+    case 1: 
       stflags.data = "Single Point Position (SPP)";
       break;
-    case 10: // 2
+    case 2:
       stflags.data = "Differential GNSS (DGNSS)";
       break;
-    case 11: // 3
+    case 3:
       stflags.data = "Float RTK";
       break;
-    case 12: // 4
+    case 4:
       stflags.data = "Fixed RTK";
       break;
-    case 13:
+    case 5:
       stflags.data = "Dead Reckoning (DR)";
       break;
-    case 14:
+    case 6:
       stflags.data = "SBAS Position";
       break;
     default:

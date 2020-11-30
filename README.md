@@ -18,8 +18,9 @@ It is detailed in github, but the main steps are:
 sudo apt-get install build-essential pkg-config cmake doxygen check
 cd ~; mkdir git; cd git     # eg create a git folder, the folder name can be different
 git clone https://github.com/swift-nav/libsbp.git
+cd libsbp
 git checkout fe7b78992fb87eef5bd6d12b2daf70f4ac90bc39
-cd libsbp/c/
+cd c
 git submodule update --init --recursive
 mkdir build; cd build
 cmake ../
