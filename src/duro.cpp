@@ -98,24 +98,67 @@ void heartbeat_callback(u16 sender_id, u8 len, u8 msg[], void *context)
   printf("len: %d\n", len);*/
 }
 
+// first three bits are fix mode
+const int FIX_MODE_POSITION = 0;
+const u8 FIX_MODE_MASK = 7;
+
+namespace fix_modes
+{
+enum FIX_MODE
+{
+  INVALID = 0,
+  SINGLE_POINT_POSITION,
+  DIFFERENTIAL_GNSS,
+  FLOAT_RTK,
+  FIXED_RTK,
+  DEAD_RECKONING,
+  SBAS_POSITION
+};
+}
+
+// next two bits are internal navigation system mode
+const int INS_MODE_POSITION = 3;
+const u8 INS_MODE_MASK = 3 << INS_MODE_POSITION;
+
+namespace ins_modes
+{
+enum INS_MODE
+{
+  NONE = 0,
+  INS_USED
+};
+}
+
 void pos_ll_callback(u16 sender_id, u8 len, u8 msg[], void *context)
 {
   (void)sender_id, (void)len, (void)msg, (void)context;
   msg_pos_llh_t *latlonmsg = (msg_pos_llh_t *)msg;
   // nav fix (latlon) message over ROS
   fix.header.stamp = ros::Time::now();
-  if (latlonmsg->lat != 0.0)
+
+  int ins_mode = (latlonmsg->flags & INS_MODE_MASK) >> INS_MODE_POSITION;  // INS mode seems to remain 0...
+  int fix_mode = (latlonmsg->flags & FIX_MODE_MASK) >> FIX_MODE_POSITION;
+
+  std_msgs::String stflags;
+  stflags.data = "Invalid";
+
+  std_msgs::UInt8 fix_mode_msg;
+  fix_mode_msg.data = fix_mode;
+  status_flag_pub.publish(fix_mode_msg);  // 0: Invalid 1: Single Point Position (SPP) 2: Differential GNSS (DGNSS) 3:
+                                          // Float RTK 4: Fixed RTK 5: Dead Reckoning 6: SBAS Position
+
+  if (fix_mode > fix_modes::INVALID)
   {
     fix.latitude = latlonmsg->lat;
     fix.longitude = latlonmsg->lon;
     // covariance matrix
     double h_covariance = pow(latlonmsg->h_accuracy * 1e-3, 2);  // Convert mm to m and take the ^2 for going from std to cov
     double v_covariance = pow(latlonmsg->v_accuracy * 1e-3, 2);  // Convert mm to m and take the ^2 for going from std to cov
-    fix.position_covariance[0]  = h_covariance;   // x = 0, 0
-    fix.position_covariance[4]  = h_covariance;   // y = 1, 1 
-    fix.position_covariance[8]  = v_covariance;   // z = 2, 2 
-    fix.position_covariance_type = 2; // COVARIANCE_TYPE_DIAGONAL_KNOWN = 2
-    nav_fix_pub.publish(fix);
+    fix.position_covariance[0] = h_covariance; // x = 0, 0
+    fix.position_covariance[4] = h_covariance; // y = 1, 1
+    fix.position_covariance[8] = v_covariance; // z = 2, 2
+    fix.position_covariance_type = sensor_msgs::NavSatFix::COVARIANCE_TYPE_DIAGONAL_KNOWN;
+
     double x = 0, y = 0;
     coordinate_transition.LatLonToUTMXY(latlonmsg->lat, latlonmsg->lon, x, y);
     odom.header.stamp = ros::Time::now();
@@ -135,38 +178,48 @@ void pos_ll_callback(u16 sender_id, u8 len, u8 msg[], void *context)
     //static_transformStamped.transform.translation.y = y;
     //static_transformStamped.transform.translation.z = 0;
     pose_pub.publish(pose_msg); //
-    std_msgs::UInt8 flags;
-    flags.data = latlonmsg->flags;
-    status_flag_pub.publish(flags); // 0: Invalid 1: Single Point Position (SPP) 2: Differential GNSS (DGNSS) 3: Float RTK 4: Fixed RTK 5: Dead Reckoning 6: SBAS Position
-    std_msgs::String stflags;
 
-    switch (latlonmsg->flags & 7)
+    switch (fix_mode)
     {
-    case 1: 
-      stflags.data = "Single Point Position (SPP)";
-      break;
-    case 2:
-      stflags.data = "Differential GNSS (DGNSS)";
-      break;
-    case 3:
-      stflags.data = "Float RTK";
-      break;
-    case 4:
-      stflags.data = "Fixed RTK";
-      break;
-    case 5:
-      stflags.data = "Dead Reckoning (DR)";
-      break;
-    case 6:
-      stflags.data = "SBAS Position";
-      break;
-    default:
-      stflags.data = "Invalid";
-      break;
+      case fix_modes::INVALID:
+        fix.status.status = sensor_msgs::NavSatStatus::STATUS_NO_FIX;
+        stflags.data = "Invalid";
+        break;
+      case fix_modes::SINGLE_POINT_POSITION:
+        fix.status.status = sensor_msgs::NavSatStatus::STATUS_FIX;
+        stflags.data = "Single Point Position (SPP)";
+        break;
+      case fix_modes::DIFFERENTIAL_GNSS:
+        fix.status.status = sensor_msgs::NavSatStatus::STATUS_GBAS_FIX;
+        stflags.data = "Differential GNSS (DGNSS)";
+        break;
+      case fix_modes::FLOAT_RTK:
+        fix.status.status = sensor_msgs::NavSatStatus::STATUS_GBAS_FIX;
+        stflags.data = "Float RTK";
+        break;
+      case fix_modes::FIXED_RTK:
+        fix.status.status = sensor_msgs::NavSatStatus::STATUS_GBAS_FIX;
+        stflags.data = "Fixed RTK";
+        break;
+      case fix_modes::DEAD_RECKONING:
+        fix.status.status = sensor_msgs::NavSatStatus::STATUS_NO_FIX;
+        stflags.data = "Dead Reckoning (DR)";
+        break;
+      case fix_modes::SBAS_POSITION:
+        fix.status.status = sensor_msgs::NavSatStatus::STATUS_SBAS_FIX;
+        stflags.data = "SBAS Position";
+        break;
+      default:
+        fix.status.status = sensor_msgs::NavSatStatus::STATUS_NO_FIX;
+        ROS_WARN_STREAM("Acquired a fix with a mode that's not implemented. You are likely"
+                        "using an unsupported version of libsbp.");
+        stflags.data = "Not implemented";
+        break;
     }
 
-    status_stri_pub.publish(stflags);
+    nav_fix_pub.publish(fix);
   }
+  status_stri_pub.publish(stflags);
 }
 
 void orientation_callback(u16 sender_id, u8 len, u8 msg[], void *context)
