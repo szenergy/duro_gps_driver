@@ -1,7 +1,7 @@
 # Duro Inertial GPS Driver
 ## Overview
 
-This is a C++ ROS driver for Swiftnaw Duro Inertial (Piksi Multi Inertial) GPS / GNSS Receivers. The code is based on offical Swiftnav libswiftnav C example and <del>Alex Hajnal's</del> Apollo UTM converter code.
+This is a C++ ROS driver for Swiftnaw Duro Inertial (Piksi Multi Inertial) GPS / GNSS Receivers. The code is based on offical Swiftnav libswiftnav C example and <del>Alex Hajnal's</del> Apollo UTM converter code. **Note** that orientation data is produced by Duro Inertial but not produced by Piksi Multi or Duro.
 
 ## Scope
 The current version supports *only* (not tested elsewhere):
@@ -38,7 +38,7 @@ catkin build `duro-ros`
 ```
 
 ## Settings 
-Enable MSG ID 544 and 545 in swift console. These orientation messages are not enabled in default configuration.
+Enable MSG ID 544 and 545 in swift console. Once again, orientation data not produced by Piksi Multi or Duro. These orientation messages are not enabled in default configuration.
 The MSG ID is defined in the headers, e.g. `#define SBP_MSG_ORIENT_QUAT 0x0220` which is decimal `544`.
 
 ## Run
