@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>duro-ros</name>
+  <name>duro_ros</name>
   <version>0.0.0</version>
-  <description>The duro-ros package</description>
+  <description>The duro_ros package</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
   <!-- Example:  -->
