@@ -38,7 +38,6 @@ ros::Publisher odom_pub;
 ros::Publisher chatter_pub_st;
 ros::Publisher imu_pub;
 ros::Publisher mag_pub;
-ros::Publisher gyro_pub;
 ros::Publisher euler_pub;
 ros::Publisher pose_pub;
 ros::Publisher tmp_pub;
@@ -274,16 +273,15 @@ void imu_callback(u16 sender_id, u8 len, u8 msg[], void *context)
 {
   (void)sender_id, (void)len, (void)msg, (void)context;
   msg_imu_raw_t *imumsg = (msg_imu_raw_t *)msg;
-  geometry_msgs::Vector3 imu_ros_msg;
-  imu_ros_msg.x = imumsg->acc_x;
-  imu_ros_msg.y = imumsg->acc_y;
-  imu_ros_msg.z = imumsg->acc_z;
+  sensor_msgs::Imu imu_ros_msg;
+  imu_ros_msg.linear_acceleration.x = imumsg->acc_x;
+  imu_ros_msg.linear_acceleration.y = imumsg->acc_y;
+  imu_ros_msg.linear_acceleration.z = imumsg->acc_z;
+
+  imu_ros_msg.angular_velocity.x = imumsg->gyr_x; // Angular rate around IMU frame X axis
+  imu_ros_msg.angular_velocity.y = imumsg->gyr_y;
+  imu_ros_msg.angular_velocity.z = imumsg->gyr_z;
   imu_pub.publish(imu_ros_msg);
-  geometry_msgs::Vector3 gyro_ros_msg;
-  gyro_ros_msg.x = imumsg->gyr_x; // Angular rate around IMU frame X axis
-  gyro_ros_msg.y = imumsg->gyr_y;
-  gyro_ros_msg.z = imumsg->gyr_z;
-  gyro_pub.publish(gyro_ros_msg);
 }
 
 void mag_callback(u16 sender_id, u8 len, u8 msg[], void *context)
@@ -318,8 +316,7 @@ int main(int argc, char **argv)
   pose_pub = n.advertise<geometry_msgs::PoseStamped>("gps/duro/current_pose", 100);
   nav_fix_pub = n.advertise<sensor_msgs::NavSatFix>("gps/duro/fix", 100);
   mag_pub = n.advertise<sensor_msgs::MagneticField>("gps/duro/mag", 100);
-  imu_pub = n.advertise<geometry_msgs::Vector3>("gps/duro/imu", 100);
-  gyro_pub = n.advertise<geometry_msgs::Vector3>("gps/duro/gyro", 100);
+  imu_pub = n.advertise<sensor_msgs::Imu>("gps/duro/imu", 100);
   euler_pub = n.advertise<geometry_msgs::Vector3>("gps/duro/rollpitchyaw", 100);
   status_flag_pub = n.advertise<std_msgs::UInt8>("gps/duro/status_flag", 100);
   status_stri_pub = n.advertise<std_msgs::String>("gps/duro/status_string", 100);
