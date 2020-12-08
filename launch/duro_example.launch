@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <launch>
     <group ns="gps/duro">
-        <param name="duro_address" value="192.168.1.3"/>
-        <param name="duro_port" value="55555"/>
-        <node pkg="duro-ros" type="duronode" name="duro_driver"/>
+        <node pkg="duro-ros" type="duronode" name="duro_driver">
+            <param name="duro_address" value="192.168.1.10"/>
+            <param name="duro_port" value="55555"/>
+        </node>
     </group>
 </launch>

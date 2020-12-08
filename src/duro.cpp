@@ -302,8 +302,9 @@ int main(int argc, char **argv)
   status_flag_pub = n.advertise<std_msgs::UInt8>("status_flag", 100);
   status_stri_pub = n.advertise<std_msgs::String>("status_string", 100);
 
-  n.getParam("duro_address", tcp_ip_addr);
-  n.getParam("duro_port", tcp_ip_port);
+  ros::NodeHandle n_private("~");
+  n_private.getParam("duro_address", tcp_ip_addr);
+  n_private.getParam("duro_port", tcp_ip_port);
   if (tcp_ip_addr.length() < 3)
   {
     ROS_WARN("No or wrong parameters provided, assuming _address:=192.168.1.10 _port:=55555");
