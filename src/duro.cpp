@@ -73,7 +73,7 @@ void setup_socket()
   memset(&server, '0', sizeof(server));
   server.sin_addr.s_addr = inet_addr(tcp_ip_addr.c_str());
   server.sin_family = AF_INET;
-  server.sin_port = htons(55555);
+  server.sin_port = htons(tcp_ip_port);
 
   if (connect(socket_desc, (struct sockaddr *)&server, sizeof(server)) < 0)
   {
