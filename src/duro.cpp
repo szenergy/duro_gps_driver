@@ -1,11 +1,7 @@
 // ros headers
 #include "ros/ros.h"
 #include "std_msgs/String.h"
-#include "std_msgs/Float64.h"
-#include "std_msgs/Int16.h"
-#include "std_msgs/Int8.h"
 #include "std_msgs/UInt8.h"
-#include "std_msgs/String.h"
 #include "nav_msgs/Odometry.h"
 #include "sensor_msgs/NavSatFix.h"
 #include "sensor_msgs/NavSatStatus.h"
@@ -13,8 +9,7 @@
 #include "sensor_msgs/MagneticField.h"
 #include "geometry_msgs/Vector3.h"
 #include "geometry_msgs/PoseStamped.h"
-#include "tf/transform_broadcaster.h"
-#include <tf2_ros/static_transform_broadcaster.h>
+#include "tf2/LinearMath/Quaternion.h"
 // standard c headers
 #include <sys/socket.h>
 #include <arpa/inet.h>
@@ -42,8 +37,8 @@ ros::Publisher pose_pub;
 ros::Publisher status_flag_pub;
 ros::Publisher status_stri_pub;
 
-std::string tcp_ip_addr = "";
-int tcp_ip_port = -1;
+std::string tcp_ip_addr;
+int tcp_ip_port;
 std::string gps_receiver_frame_id;
 std::string imu_frame_id;
 std::string utm_frame_id;
@@ -56,9 +51,6 @@ static sbp_msg_callbacks_node_t imu_callback_node;
 static sbp_msg_callbacks_node_t mag_callback_node;
 nav_msgs::Odometry odom;
 geometry_msgs::PoseStamped pose_msg;
-// Debug broadcast tf
-// geometry_msgs::TransformStamped static_transformStamped;
-
 
 CoordinateTransition coordinate_transition;
 
@@ -122,7 +114,6 @@ enum INS_MODE
 
 void pos_ll_callback(u16 sender_id, u8 len, u8 msg[], void *context)
 {
-  (void)sender_id, (void)len, (void)msg, (void)context;
   msg_pos_llh_t *latlonmsg = (msg_pos_llh_t *)msg;
   // nav fix (latlon) message over ROS
   fix.header.stamp = ros::Time::now();
@@ -153,6 +144,7 @@ void pos_ll_callback(u16 sender_id, u8 len, u8 msg[], void *context)
 
     double x = 0, y = 0;
     coordinate_transition.LatLonToUTMXY(latlonmsg->lat, latlonmsg->lon, x, y);
+
     odom.header.stamp = ros::Time::now();
     odom.header.frame_id = utm_frame_id;
     odom.child_frame_id = gps_receiver_frame_id;
@@ -160,18 +152,13 @@ void pos_ll_callback(u16 sender_id, u8 len, u8 msg[], void *context)
     odom.pose.pose.position.y = y;
     odom.pose.pose.position.z = latlonmsg->height;
     odom_pub.publish(odom);
+
     pose_msg.header.stamp = ros::Time::now();
     pose_msg.header.frame_id = utm_frame_id;
     pose_msg.pose.position.x = x;
     pose_msg.pose.position.y = y;
     pose_msg.pose.position.z = 0; //latlonmsg->height;
-    // Debug broadcast tf
-    //static_transformStamped.header.stamp = ros::Time::now();
-    //static_transformStamped.header.frame_id = "/map";
-    //static_transformStamped.child_frame_id = "/duro";
-    //static_transformStamped.transform.translation.x = x;
-    //static_transformStamped.transform.translation.y = y;
-    //static_transformStamped.transform.translation.z = 0;
+
     pose_pub.publish(pose_msg); //
 
     switch (fix_mode)
@@ -209,7 +196,6 @@ void pos_ll_callback(u16 sender_id, u8 len, u8 msg[], void *context)
         ROS_WARN_STREAM("Acquired a fix with a mode that's not implemented. You are likely"
                         "using an unsupported version of libsbp.");
         stflags.data = "Not implemented";
-        break;
     }
 
     nav_fix_pub.publish(fix);
@@ -221,7 +207,6 @@ void orientation_callback(u16 sender_id, u8 len, u8 msg[], void *context)
 {
   // enable MSG ID 544 in swift console
   // the MSG ID comes from eg #define SBP_MSG_ORIENT_QUAT 0x0220 --> 544
-  (void)sender_id, (void)len, (void)msg, (void)context;
   msg_orient_quat_t *orimsg = (msg_orient_quat_t *)msg;
 
   double w = orimsg->w * pow(2, -31);
@@ -236,20 +221,11 @@ void orientation_callback(u16 sender_id, u8 len, u8 msg[], void *context)
   pose_msg.pose.orientation.x = tf_aligned.y();      // left-handerd / right handed orientation
   pose_msg.pose.orientation.y = tf_aligned.x() * -1; // left-handerd / right handed orientation
   pose_msg.pose.orientation.z = tf_aligned.z();      // left-handerd / right handed orientation
-  pose_msg.header.frame_id = "map";
-  // Debug broadcast tf
-  //static tf2_ros::StaticTransformBroadcaster static_broadcaster;
-  //static_transformStamped.transform.rotation.x = x;
-  //static_transformStamped.transform.rotation.y = y;
-  //static_transformStamped.transform.rotation.z = z;
-  //static_transformStamped.transform.rotation.w = w;
-  //static_broadcaster.sendTransform(static_transformStamped);
 }
 
 void orientation_euler_callback(u16 sender_id, u8 len, u8 msg[], void *context)
 {
   // enable MSG ID 545 in swift console
-  (void)sender_id, (void)len, (void)msg, (void)context;
   msg_orient_euler_t *orimsg = (msg_orient_euler_t *)msg;
   geometry_msgs::Vector3 eulervect;
   eulervect.x = orimsg->roll / 57292374.; // 57292374: raw > microdegrees > rad constant
@@ -260,7 +236,6 @@ void orientation_euler_callback(u16 sender_id, u8 len, u8 msg[], void *context)
 
 void imu_callback(u16 sender_id, u8 len, u8 msg[], void *context)
 {
-  (void)sender_id, (void)len, (void)msg, (void)context;
   msg_imu_raw_t *imumsg = (msg_imu_raw_t *)msg;
   sensor_msgs::Imu imu_ros_msg;
   imu_ros_msg.header.stamp = ros::Time::now();
@@ -277,7 +252,6 @@ void imu_callback(u16 sender_id, u8 len, u8 msg[], void *context)
 
 void mag_callback(u16 sender_id, u8 len, u8 msg[], void *context)
 {
-  (void)sender_id, (void)len, (void)msg, (void)context;
   msg_mag_raw_t *magmsg = (msg_mag_raw_t *)msg;
   sensor_msgs::MagneticField mag_ros_msg;
   mag_ros_msg.header.stamp = ros::Time::now();
@@ -291,17 +265,11 @@ void mag_callback(u16 sender_id, u8 len, u8 msg[], void *context)
 
 s32 socket_read(u8 *buff, u32 n, void *context)
 {
-  (void)context;
-  s32 result;
-
-  result = read(socket_desc, buff, n);
-  return result;
+  return read(socket_desc, buff, n);
 }
 
 int main(int argc, char **argv)
 {
-  int opt;
-  int result = 0;
   sbp_state_t s;
   ros::init(argc, argv, "duro");
   ros::NodeHandle n;
@@ -329,7 +297,6 @@ int main(int argc, char **argv)
   sbp_register_callback(&s, SBP_MSG_ORIENT_EULER, &orientation_euler_callback, NULL, &orientation_euler_callback_node);
   sbp_register_callback(&s, SBP_MSG_IMU_RAW, &imu_callback, NULL, &imu_callback_node);
   sbp_register_callback(&s, SBP_MSG_MAG_RAW, &mag_callback, NULL, &mag_callback_node);
-  //ros::Rate loop_rate(10);
 
   while (ros::ok())
   {
@@ -337,5 +304,5 @@ int main(int argc, char **argv)
     ros::spinOnce();
   }
   close_socket();
-  return result;
+  return 0;
 }
