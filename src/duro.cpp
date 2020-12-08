@@ -293,14 +293,14 @@ int main(int argc, char **argv)
   sbp_state_t s;
   ros::init(argc, argv, "duro");
   ros::NodeHandle n;
-  odom_pub = n.advertise<nav_msgs::Odometry>("gps/duro/odom", 100);
-  pose_pub = n.advertise<geometry_msgs::PoseStamped>("gps/duro/current_pose", 100);
-  nav_fix_pub = n.advertise<sensor_msgs::NavSatFix>("gps/duro/fix", 100);
-  mag_pub = n.advertise<sensor_msgs::MagneticField>("gps/duro/mag", 100);
-  imu_pub = n.advertise<sensor_msgs::Imu>("gps/duro/imu", 100);
-  euler_pub = n.advertise<geometry_msgs::Vector3>("gps/duro/rollpitchyaw", 100);
-  status_flag_pub = n.advertise<std_msgs::UInt8>("gps/duro/status_flag", 100);
-  status_stri_pub = n.advertise<std_msgs::String>("gps/duro/status_string", 100);
+  odom_pub = n.advertise<nav_msgs::Odometry>("odom", 100);
+  pose_pub = n.advertise<geometry_msgs::PoseStamped>("current_pose", 100);
+  nav_fix_pub = n.advertise<sensor_msgs::NavSatFix>("fix", 100);
+  mag_pub = n.advertise<sensor_msgs::MagneticField>("mag", 100);
+  imu_pub = n.advertise<sensor_msgs::Imu>("imu", 100);
+  euler_pub = n.advertise<geometry_msgs::Vector3>("rollpitchyaw", 100);
+  status_flag_pub = n.advertise<std_msgs::UInt8>("status_flag", 100);
+  status_stri_pub = n.advertise<std_msgs::String>("status_string", 100);
 
   n.getParam("duro_address", tcp_ip_addr);
   n.getParam("duro_port", tcp_ip_port);
