@@ -303,22 +303,10 @@ int main(int argc, char **argv)
   status_stri_pub = n.advertise<std_msgs::String>("status_string", 100);
 
   ros::NodeHandle n_private("~");
-  n_private.getParam("duro_address", tcp_ip_addr);
-  n_private.getParam("duro_port", tcp_ip_port);
-  if (tcp_ip_addr.length() < 3)
-  {
-    ROS_WARN("No or wrong parameters provided, assuming _address:=192.168.1.10 _port:=55555");
-    tcp_ip_addr = "192.168.1.10";
-    tcp_ip_port = 55555;
-  }
-  else if (tcp_ip_port == -1)
-  {
-    tcp_ip_port = 55555;
-  }
-  else
-  {
-    ROS_INFO("Starting with _address:=%s _port:=%d", tcp_ip_addr.c_str(), tcp_ip_port);
-  }
+  n_private.param<std::string>("ip_address", tcp_ip_addr, "192.168.0.222");
+  n_private.param<int>("port", tcp_ip_port, 55555);
+  ROS_INFO("Connecting to duro on %s:%d", tcp_ip_addr.c_str(), tcp_ip_port);
+
   setup_socket();
   sbp_state_init(&s);
   sbp_register_callback(&s, SBP_MSG_POS_LLH, &pos_ll_callback, NULL, &pos_ll_callback_node);
