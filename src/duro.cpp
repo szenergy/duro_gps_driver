@@ -86,15 +86,6 @@ void close_socket()
   close(socket_desc);
 }
 
-void heartbeat_callback(u16 sender_id, u8 len, u8 msg[], void *context)
-{
-  (void)sender_id, (void)len, (void)msg, (void)context;
-  //fprintf(stdout, "%s\n", __FUNCTION__);
-  /*for(int i = 0; i < len; i++)
-    printf("%d ", msg[i]);
-  printf("len: %d\n", len);*/
-}
-
 // first three bits are fix mode
 const int FIX_MODE_POSITION = 0;
 const u8 FIX_MODE_MASK = 7;
@@ -260,13 +251,6 @@ void orientation_euler_callback(u16 sender_id, u8 len, u8 msg[], void *context)
   euler_pub.publish(eulervect);
 }
 
-void time_callback(u16 sender_id, u8 len, u8 msg[], void *context)
-{
-  (void)sender_id, (void)len, (void)msg, (void)context;
-  msg_gps_time_t *timemsg = (msg_gps_time_t *)msg;
-  //printf("%d\n", timemsg->tow);
-}
-
 void imu_callback(u16 sender_id, u8 len, u8 msg[], void *context)
 {
   (void)sender_id, (void)len, (void)msg, (void)context;
@@ -336,11 +320,9 @@ int main(int argc, char **argv)
   }
   setup_socket();
   sbp_state_init(&s);
-  sbp_register_callback(&s, SBP_MSG_HEARTBEAT, &heartbeat_callback, NULL, &heartbeat_callback_node);
   sbp_register_callback(&s, SBP_MSG_POS_LLH, &pos_ll_callback, NULL, &pos_ll_callback_node);
   sbp_register_callback(&s, SBP_MSG_ORIENT_QUAT, &orientation_callback, NULL, &orientation_callback_node);
   sbp_register_callback(&s, SBP_MSG_ORIENT_EULER, &orientation_euler_callback, NULL, &orientation_euler_callback_node);
-  sbp_register_callback(&s, SBP_MSG_GPS_TIME, &time_callback, NULL, &time_callback_node);
   sbp_register_callback(&s, SBP_MSG_IMU_RAW, &imu_callback, NULL, &imu_callback_node);
   sbp_register_callback(&s, SBP_MSG_MAG_RAW, &mag_callback, NULL, &mag_callback_node);
   //ros::Rate loop_rate(10);
