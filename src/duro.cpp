@@ -288,10 +288,10 @@ void mag_callback(u16 sender_id, u8 len, u8 msg[], void *context)
 {
   (void)sender_id, (void)len, (void)msg, (void)context;
   msg_mag_raw_t *magmsg = (msg_mag_raw_t *)msg;
-  sensor_msgs::MagneticField mag_ros_msg;       // is geometry_msgs::Vector3 better?
-  mag_ros_msg.magnetic_field.x = magmsg->mag_x; // Magnetic field in the body frame X axis [microteslas]
-  mag_ros_msg.magnetic_field.y = magmsg->mag_y;
-  mag_ros_msg.magnetic_field.z = magmsg->mag_z;
+  sensor_msgs::MagneticField mag_ros_msg;
+  mag_ros_msg.magnetic_field.x = magmsg->mag_x * 1e-6; // Magnetic field in the body frame X axis [microteslas]
+  mag_ros_msg.magnetic_field.y = magmsg->mag_y * 1e-6;
+  mag_ros_msg.magnetic_field.z = magmsg->mag_z * 1e-6;
   mag_pub.publish(mag_ros_msg);
 }
 
