@@ -35,12 +35,10 @@
 sensor_msgs::NavSatFix fix;
 ros::Publisher nav_fix_pub;
 ros::Publisher odom_pub;
-ros::Publisher chatter_pub_st;
 ros::Publisher imu_pub;
 ros::Publisher mag_pub;
 ros::Publisher euler_pub;
 ros::Publisher pose_pub;
-ros::Publisher tmp_pub;
 ros::Publisher status_flag_pub;
 ros::Publisher status_stri_pub;
 
@@ -311,7 +309,6 @@ int main(int argc, char **argv)
   sbp_state_t s;
   ros::init(argc, argv, "duro");
   ros::NodeHandle n;
-  chatter_pub_st = n.advertise<std_msgs::String>("gps/duro/utmzone", 100);
   odom_pub = n.advertise<nav_msgs::Odometry>("gps/duro/odom", 100);
   pose_pub = n.advertise<geometry_msgs::PoseStamped>("gps/duro/current_pose", 100);
   nav_fix_pub = n.advertise<sensor_msgs::NavSatFix>("gps/duro/fix", 100);
@@ -320,7 +317,6 @@ int main(int argc, char **argv)
   euler_pub = n.advertise<geometry_msgs::Vector3>("gps/duro/rollpitchyaw", 100);
   status_flag_pub = n.advertise<std_msgs::UInt8>("gps/duro/status_flag", 100);
   status_stri_pub = n.advertise<std_msgs::String>("gps/duro/status_string", 100);
-  tmp_pub = n.advertise<std_msgs::Float64>("gps/duro/tmp", 100);
 
   n.getParam("duro_address", tcp_ip_addr);
   n.getParam("duro_port", tcp_ip_port);
