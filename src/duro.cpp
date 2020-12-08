@@ -44,6 +44,9 @@ ros::Publisher status_stri_pub;
 
 std::string tcp_ip_addr = "";
 int tcp_ip_port = -1;
+std::string gps_receiver_frame_id;
+std::string imu_frame_id;
+std::string utm_frame_id;
 static sbp_msg_callbacks_node_t heartbeat_callback_node;
 static sbp_msg_callbacks_node_t pos_ll_callback_node;
 static sbp_msg_callbacks_node_t orientation_callback_node;
@@ -123,6 +126,7 @@ void pos_ll_callback(u16 sender_id, u8 len, u8 msg[], void *context)
   msg_pos_llh_t *latlonmsg = (msg_pos_llh_t *)msg;
   // nav fix (latlon) message over ROS
   fix.header.stamp = ros::Time::now();
+  fix.header.frame_id  = gps_receiver_frame_id;
 
   int ins_mode = (latlonmsg->flags & INS_MODE_MASK) >> INS_MODE_POSITION;  // INS mode seems to remain 0...
   int fix_mode = (latlonmsg->flags & FIX_MODE_MASK) >> FIX_MODE_POSITION;
@@ -150,11 +154,14 @@ void pos_ll_callback(u16 sender_id, u8 len, u8 msg[], void *context)
     double x = 0, y = 0;
     coordinate_transition.LatLonToUTMXY(latlonmsg->lat, latlonmsg->lon, x, y);
     odom.header.stamp = ros::Time::now();
+    odom.header.frame_id = utm_frame_id;
+    odom.child_frame_id = gps_receiver_frame_id;
     odom.pose.pose.position.x = x;
     odom.pose.pose.position.y = y;
     odom.pose.pose.position.z = latlonmsg->height;
     odom_pub.publish(odom);
     pose_msg.header.stamp = ros::Time::now();
+    pose_msg.header.frame_id = utm_frame_id;
     pose_msg.pose.position.x = x;
     pose_msg.pose.position.y = y;
     pose_msg.pose.position.z = 0; //latlonmsg->height;
@@ -256,6 +263,8 @@ void imu_callback(u16 sender_id, u8 len, u8 msg[], void *context)
   (void)sender_id, (void)len, (void)msg, (void)context;
   msg_imu_raw_t *imumsg = (msg_imu_raw_t *)msg;
   sensor_msgs::Imu imu_ros_msg;
+  imu_ros_msg.header.stamp = ros::Time::now();
+  imu_ros_msg.header.frame_id = imu_frame_id;
   imu_ros_msg.linear_acceleration.x = imumsg->acc_x;
   imu_ros_msg.linear_acceleration.y = imumsg->acc_y;
   imu_ros_msg.linear_acceleration.z = imumsg->acc_z;
@@ -271,6 +280,9 @@ void mag_callback(u16 sender_id, u8 len, u8 msg[], void *context)
   (void)sender_id, (void)len, (void)msg, (void)context;
   msg_mag_raw_t *magmsg = (msg_mag_raw_t *)msg;
   sensor_msgs::MagneticField mag_ros_msg;
+  mag_ros_msg.header.stamp = ros::Time::now();
+  mag_ros_msg.header.frame_id = imu_frame_id;
+
   mag_ros_msg.magnetic_field.x = magmsg->mag_x * 1e-6; // Magnetic field in the body frame X axis [microteslas]
   mag_ros_msg.magnetic_field.y = magmsg->mag_y * 1e-6;
   mag_ros_msg.magnetic_field.z = magmsg->mag_z * 1e-6;
@@ -305,6 +317,9 @@ int main(int argc, char **argv)
   ros::NodeHandle n_private("~");
   n_private.param<std::string>("ip_address", tcp_ip_addr, "192.168.0.222");
   n_private.param<int>("port", tcp_ip_port, 55555);
+  n_private.param<std::string>("gps_receiver_frame_id", gps_receiver_frame_id, "duro_link");
+  n_private.param<std::string>("imu_frame_id", imu_frame_id, gps_receiver_frame_id);
+  n_private.param<std::string>("utm_frame_id", utm_frame_id, "utm");
   ROS_INFO("Connecting to duro on %s:%d", tcp_ip_addr.c_str(), tcp_ip_port);
 
   setup_socket();

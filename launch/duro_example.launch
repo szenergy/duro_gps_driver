@@ -4,6 +4,9 @@
         <node pkg="duro-ros" type="duronode" name="duro_driver">
             <param name="duro_address" value="192.168.1.10"/>
             <param name="duro_port" value="55555"/>
+            <param name="gps_receiver_frame_id" value="duro_link"/>
+            <param name="imu_frame_id" value="duro_link"/>
+            <param name="utm_frame_id" value="utm"/>
         </node>
     </group>
 </launch>
