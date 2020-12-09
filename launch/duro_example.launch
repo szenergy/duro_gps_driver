@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <launch>
     <group ns="gps/duro">
-        <node pkg="duro_ros" type="duronode" name="duro_driver">
-            <param name="duro_address" value="192.168.1.10"/>
-            <param name="duro_port" value="55555"/>
-            <param name="gps_receiver_frame_id" value="duro_link"/>
-            <param name="imu_frame_id" value="duro_link"/>
-            <param name="utm_frame_id" value="utm"/>
+        <node pkg="duro_ros" type="duronode" name="duro_driver" output="screen">
+            <param name="ip_address" value="192.168.1.10"/>
+            <param name="port" value="55555"/>
+            <param name="gps_receiver_frame_id" value="duro"/>
+            <param name="imu_frame_id" value="duro"/>
+            <param name="utm_frame_id" value="map"/>
         </node>
     </group>
 </launch>

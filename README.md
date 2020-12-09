@@ -31,10 +31,10 @@ This will create some files in `/usr/local/include/libsbp/` and in `/usr/local/l
 
 ### 2. step
 Clone the duro_gps_driver package into your Catkin workspace. 
-Navigate to the root of your Catkin workspace. Source your setup.bash file. Build the `duro-ros` package using Catkin:
+Navigate to the root of your Catkin workspace. Source your setup.bash file. Build the `duro_ros` package using Catkin:
 ```
+catkin build duro_ros
 source devel/setup.bash
-catkin build `duro-ros`
 ```
 
 ## Settings 
@@ -46,23 +46,24 @@ Make sure that `roscore` is running.
 The `duro-gps` driver can be run using the `rosrun` command. It is necessary to provide your device's IP address and port number. 
 E.g:
 ```
-rosrun duro-gps duronode _duro_address:=192.168.0.222 _duro_port:=55555
+rosrun duro_ros duronode _ip_address:=192.168.1.10 _port:=55555
+```
+Alternatively you can use a [launch](launch/duro_example.launch) file. E.g:
+```
+roslaunch duro_ros duro_example.launch
 ```
 
 ## Topics
-`duro-gps duronode` publishes the following topics:
+`duro_ros duronode` publishes the following topics and [types]:
 ```
-/gps/duro/current_pose
-/gps/duro/fix
-/gps/duro/gyro
-/gps/duro/imu
-/gps/duro/mag
-/gps/duro/odom
-/gps/duro/rollpitchyaw
-/gps/duro/status_flag
-/gps/duro/status_string
-/gps/duro/tmp
-/gps/duro/utmzone
+/gps/duro/current_pose    [geometry_msgs/PoseStamped]
+/gps/duro/fix             [sensor_msgs/NavSatFix]
+/gps/duro/imu             [sensor_msgs/Imu]
+/gps/duro/mag             [sensor_msgs/MagneticField]
+/gps/duro/odom            [nav_msgs/Odometry]
+/gps/duro/rollpitchyaw    [geometry_msgs/Vector3]
+/gps/duro/status_flag     [std_msgs/UInt8]
+/gps/duro/status_string   [std_msgs/String]
 ```
 An important topic is `/gps/duro/current_pose` which is `geometry_msgs/PoseStamped` type in UTM (https://en.wikipedia.org/wiki/Universal_Transverse_Mercator_coordinate_system) eg:
 
