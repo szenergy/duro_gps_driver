@@ -1,4 +1,15 @@
 # Duro Inertial GPS Driver
+
+## Contents
+
+- [Overview](#overview)
+- [Scope](#scope)
+- [Install](#install)
+- [Settings](#settings)
+- [Run](#run)
+- [Topics](#topics)
+- [Exemple rosbag](#example-rosbag)
+- [Further reading](#further-reading)
 ## Overview
 
 This is a C++ ROS driver for Swiftnaw Duro Inertial (Piksi Multi Inertial) GPS / GNSS Receivers. The code is based on offical Swiftnav libswiftnav C example and <del>Alex Hajnal's</del> Apollo UTM converter code. **Note** that orientation data is produced by Duro Inertial but not produced by Piksi Multi or Duro.
@@ -40,6 +51,9 @@ source devel/setup.bash
 ## Settings 
 Enable MSG ID 544 and 545 in swift console. Once again, orientation data not produced by Piksi Multi or Duro. These orientation messages are not enabled in default configuration.
 The MSG ID is defined in the headers, e.g. `#define SBP_MSG_ORIENT_QUAT 0x0220` which is decimal `544`.
+Also by defult the magnetometer publishes every 50th message. Change `2306/50` to `2306` in swift console (this message in hex is `0x0902`).
+
+![](img/swift_console01.png)
 
 ## Run
 Make sure that `roscore` is running. 
@@ -55,16 +69,17 @@ roslaunch duro_ros duro_example.launch
 
 ## Topics
 `duro_ros duronode` publishes the following topics and [types]:
-```
-/gps/duro/current_pose    [geometry_msgs/PoseStamped]
-/gps/duro/fix             [sensor_msgs/NavSatFix]
-/gps/duro/imu             [sensor_msgs/Imu]
-/gps/duro/mag             [sensor_msgs/MagneticField]
-/gps/duro/odom            [nav_msgs/Odometry]
-/gps/duro/rollpitchyaw    [geometry_msgs/Vector3]
-/gps/duro/status_flag     [std_msgs/UInt8]
-/gps/duro/status_string   [std_msgs/String]
-```
+|Topic|Type
+|-|-|
+`/gps/duro/current_pose` |[`[geometry_msgs/PoseStamped]`](http://docs.ros.org/en/melodic/api/geometry_msgs/html/msg/PoseStamped.html)
+`/gps/duro/fix` |[`[sensor_msgs/NavSatFix]`](http://docs.ros.org/en/melodic/api/sensor_msgs/html/msg/NavSatFix.html)
+`/gps/duro/imu` |[`[sensor_msgs/Imu]`](http://docs.ros.org/en/melodic/api/sensor_msgs/html/msg/Imu.html)
+`/gps/duro/mag` |[`[sensor_msgs/MagneticField]`](http://docs.ros.org/en/melodic/api/sensor_msgs/html/msg/MagneticField.html)
+`/gps/duro/odom ` |[`[nav_msgs/Odometry]`](http://docs.ros.org/en/melodic/api/nav_msgs/html/msg/Odometry.html)
+`/gps/duro/rollpitchyaw` |[`[geometry_msgs/Vector3]`](http://docs.ros.org/en/melodic/api/geometry_msgs/html/msg/Vector3.html)
+`/gps/duro/status_flag` |[`[std_msgs/UInt8]`](http://docs.ros.org/en/melodic/api/std_msgs/html/msg/UInt8.html)
+`/gps/duro/status_string` |[`[std_msgs/String]`](http://docs.ros.org/en/melodic/api/std_msgs/html/msg/String.html)
+
 An important topic is `/gps/duro/current_pose` which is `geometry_msgs/PoseStamped` type in UTM (https://en.wikipedia.org/wiki/Universal_Transverse_Mercator_coordinate_system) eg:
 
 ``` c
@@ -87,6 +102,11 @@ pose:
 
 ```
 
-## Further reading:
+## Example rosbag
+Download a sample rosbag, and also a small script to plot the data [here](https://nbviewer.jupyter.org/github/szenergy/szenergy-utility-programs/blob/master/bag_scripts/plotgpsandimu.ipynb) or alteratively [here](https://github.com/szenergy/szenergy-utility-programs/blob/master/bag_scripts/plotgpsandimu.ipynb).
+
+## Further reading
 - Libswiftav: https://github.com/swift-nav/libswiftnav
+- Libsbp documentation: https://swift-nav.github.io/libsbp/c/build/docs/html
+- Libsbp 2.8.0: [Protocol specification pdf](https://www.swiftnav.com/resource-files/Swift%20Navigation%20Binary%20Protocol/v2.8.0/Specification/Swift%20Navigation%20Binary%20Protocol%20Specification%20v2.8.0.pdf)
 - ETH python Piksi ROS drivers: https://github.com/ethz-asl/ethz_piksi_ros
