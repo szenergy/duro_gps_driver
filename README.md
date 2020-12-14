@@ -8,7 +8,7 @@
 - [Settings](#settings)
 - [Run](#run)
 - [Topics](#topics)
-- [Exemple rosbag](#example-rosbag)
+- [Example rosbag](#example-rosbag)
 - [Further reading](#further-reading)
 ## Overview
 

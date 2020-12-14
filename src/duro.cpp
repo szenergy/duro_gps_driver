@@ -56,9 +56,9 @@ geometry_msgs::PoseStamped pose_msg;
 
 CoordinateTransition coordinate_transition;
 
-int socket_desc = 0;
-double linear_acc_conf = 4096; // default acc_range 8g
-double angular_vel_conf = 262.4; // default gyro_range 125
+int socket_desc = -1;
+double linear_acc_conf = -1.0; //4096; // default acc_range 8g
+double angular_vel_conf = -1.0; //262.4; // default gyro_range 125
 bool first_run_imu_conf = true;
 
 void setup_socket()
@@ -240,21 +240,23 @@ void orientation_euler_callback(u16 sender_id, u8 len, u8 msg[], void *context)
 }
 
 const double G_TO_M_S2 = 9.80665; // constans to convert g to m/s^2
-const double RAD_ACC = 0.01745; // constans to convert to rad/sec
+const double GRAD_TO_RAD_ACC = 0.01745; // constans to convert to rad/sec
 void imu_callback(u16 sender_id, u8 len, u8 msg[], void *context)
 {
-  msg_imu_raw_t *imumsg = (msg_imu_raw_t *)msg;
-  sensor_msgs::Imu imu_ros_msg;
-  imu_ros_msg.header.stamp = ros::Time::now();
-  imu_ros_msg.header.frame_id = imu_frame_id;
-  imu_ros_msg.linear_acceleration.x = double(imumsg->acc_x) / linear_acc_conf;
-  imu_ros_msg.linear_acceleration.y = double(imumsg->acc_y) / linear_acc_conf;
-  imu_ros_msg.linear_acceleration.z = double(imumsg->acc_z) / linear_acc_conf;
+  if(linear_acc_conf > 0){
+    msg_imu_raw_t *imumsg = (msg_imu_raw_t *)msg;
+    sensor_msgs::Imu imu_ros_msg;
+    imu_ros_msg.header.stamp = ros::Time::now();
+    imu_ros_msg.header.frame_id = imu_frame_id;
+    imu_ros_msg.linear_acceleration.x = double(imumsg->acc_x) / linear_acc_conf * G_TO_M_S2;
+    imu_ros_msg.linear_acceleration.y = double(imumsg->acc_y) / linear_acc_conf * G_TO_M_S2;
+    imu_ros_msg.linear_acceleration.z = double(imumsg->acc_z) / linear_acc_conf * G_TO_M_S2;
 
-  imu_ros_msg.angular_velocity.x = double(imumsg->gyr_x) / angular_vel_conf; // Angular rate around IMU frame X axis
-  imu_ros_msg.angular_velocity.y = double(imumsg->gyr_y) / angular_vel_conf;
-  imu_ros_msg.angular_velocity.z = double(imumsg->gyr_z) / angular_vel_conf;
-  imu_pub.publish(imu_ros_msg);
+    imu_ros_msg.angular_velocity.x = double(imumsg->gyr_x) / angular_vel_conf * GRAD_TO_RAD_ACC; // Angular rate around IMU frame X axis
+    imu_ros_msg.angular_velocity.y = double(imumsg->gyr_y) / angular_vel_conf * GRAD_TO_RAD_ACC;
+    imu_ros_msg.angular_velocity.z = double(imumsg->gyr_z) / angular_vel_conf * GRAD_TO_RAD_ACC;
+    imu_pub.publish(imu_ros_msg);
+  }
 }
 
 const int ACC_MODE_POSITION = 0;
