@@ -84,7 +84,7 @@ An important topic is `/gps/duro/current_pose` which is `geometry_msgs/PoseStamp
 
 ``` c
 header: 
-  seq: 554S
+  seq: 5545
   stamp: 
     secs: 1580388036
     nsecs: 641742448
@@ -104,6 +104,8 @@ pose:
 
 ## Example rosbag
 Download a sample rosbag, and also a small script to plot the data [here](https://nbviewer.jupyter.org/github/szenergy/szenergy-utility-programs/blob/master/bag_scripts/plotgpsandimu.ipynb) or alteratively [here](https://github.com/szenergy/szenergy-utility-programs/blob/master/bag_scripts/plotgpsandimu.ipynb).
+
+![](img/example_measurement01.svg)
 
 ## Further reading
 - Libswiftav: https://github.com/swift-nav/libswiftnav
