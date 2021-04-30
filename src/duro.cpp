@@ -255,6 +255,11 @@ void imu_callback(u16 sender_id, u8 len, u8 msg[], void *context)
     imu_ros_msg.angular_velocity.x = double(imumsg->gyr_x) / angular_vel_conf * GRAD_TO_RAD_ACC; // Angular rate around IMU frame X axis
     imu_ros_msg.angular_velocity.y = double(imumsg->gyr_y) / angular_vel_conf * GRAD_TO_RAD_ACC;
     imu_ros_msg.angular_velocity.z = double(imumsg->gyr_z) / angular_vel_conf * GRAD_TO_RAD_ACC;
+
+    imu_ros_msg.orientation.w = pose_msg.pose.orientation.w;
+    imu_ros_msg.orientation.x = pose_msg.pose.orientation.x;
+    imu_ros_msg.orientation.y = pose_msg.pose.orientation.y;
+    imu_ros_msg.orientation.z = pose_msg.pose.orientation.z;    
     imu_pub.publish(imu_ros_msg);
   }
 }
