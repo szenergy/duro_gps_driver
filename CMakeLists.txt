@@ -86,6 +86,10 @@ add_executable(duronode src/duro.cpp src/utm.cpp)
 # )
 target_link_libraries(duronode sbp ${catkin_LIBRARIES})
 
+## Install
+install(TARGETS duronode
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
 
 #set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
