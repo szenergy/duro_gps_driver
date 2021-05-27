@@ -2,6 +2,7 @@
 #include "ros/ros.h"
 #include "std_msgs/String.h"
 #include "std_msgs/UInt8.h"
+#include "std_msgs/Float64.h"
 #include "nav_msgs/Odometry.h"
 #include "sensor_msgs/NavSatFix.h"
 #include "sensor_msgs/NavSatStatus.h"
@@ -48,6 +49,7 @@ static sbp_msg_callbacks_node_t orientation_callback_node;
 static sbp_msg_callbacks_node_t orientation_euler_callback_node;
 static sbp_msg_callbacks_node_t time_callback_node;
 static sbp_msg_callbacks_node_t imu_callback_node;
+static sbp_msg_callbacks_node_t imu_aux_callback_node;
 static sbp_msg_callbacks_node_t mag_callback_node;
 nav_msgs::Odometry odom;
 geometry_msgs::PoseStamped pose_msg;
@@ -55,6 +57,9 @@ geometry_msgs::PoseStamped pose_msg;
 CoordinateTransition coordinate_transition;
 
 int socket_desc = -1;
+double linear_acc_conf = -1.0; //4096; // default acc_range 8g
+double angular_vel_conf = -1.0; //262.4; // default gyro_range 125
+bool first_run_imu_conf = true;
 
 void setup_socket()
 {
@@ -234,20 +239,102 @@ void orientation_euler_callback(u16 sender_id, u8 len, u8 msg[], void *context)
   euler_pub.publish(eulervect);
 }
 
+const double G_TO_M_S2 = 9.80665; // constans to convert g to m/s^2
+const double GRAD_TO_RAD_ACC = 0.01745; // constans to convert to rad/sec
 void imu_callback(u16 sender_id, u8 len, u8 msg[], void *context)
 {
-  msg_imu_raw_t *imumsg = (msg_imu_raw_t *)msg;
-  sensor_msgs::Imu imu_ros_msg;
-  imu_ros_msg.header.stamp = ros::Time::now();
-  imu_ros_msg.header.frame_id = imu_frame_id;
-  imu_ros_msg.linear_acceleration.x = imumsg->acc_x;
-  imu_ros_msg.linear_acceleration.y = imumsg->acc_y;
-  imu_ros_msg.linear_acceleration.z = imumsg->acc_z;
+  if(linear_acc_conf > 0){
+    msg_imu_raw_t *imumsg = (msg_imu_raw_t *)msg;
+    sensor_msgs::Imu imu_ros_msg;
+    imu_ros_msg.header.stamp = ros::Time::now();
+    imu_ros_msg.header.frame_id = imu_frame_id;
+    imu_ros_msg.linear_acceleration.x = double(imumsg->acc_x) / linear_acc_conf * G_TO_M_S2;
+    imu_ros_msg.linear_acceleration.y = double(imumsg->acc_y) / linear_acc_conf * G_TO_M_S2;
+    imu_ros_msg.linear_acceleration.z = double(imumsg->acc_z) / linear_acc_conf * G_TO_M_S2;
 
-  imu_ros_msg.angular_velocity.x = imumsg->gyr_x; // Angular rate around IMU frame X axis
-  imu_ros_msg.angular_velocity.y = imumsg->gyr_y;
-  imu_ros_msg.angular_velocity.z = imumsg->gyr_z;
-  imu_pub.publish(imu_ros_msg);
+    imu_ros_msg.angular_velocity.x = double(imumsg->gyr_x) / angular_vel_conf * GRAD_TO_RAD_ACC; // Angular rate around IMU frame X axis
+    imu_ros_msg.angular_velocity.y = double(imumsg->gyr_y) / angular_vel_conf * GRAD_TO_RAD_ACC;
+    imu_ros_msg.angular_velocity.z = double(imumsg->gyr_z) / angular_vel_conf * GRAD_TO_RAD_ACC;
+
+    imu_ros_msg.orientation.w = pose_msg.pose.orientation.w;
+    imu_ros_msg.orientation.x = pose_msg.pose.orientation.x;
+    imu_ros_msg.orientation.y = pose_msg.pose.orientation.y;
+    imu_ros_msg.orientation.z = pose_msg.pose.orientation.z;    
+    imu_pub.publish(imu_ros_msg);
+  }
+}
+
+const int ACC_MODE_POSITION = 0;
+const u8 ACC_MODE_MASK = 0xF;
+// imu_conf[0:3] in g (acclelerometer)
+namespace acc_conf_modes
+{
+  enum ACC_CONF_MODE
+  {
+    G2 = 0, // +/- 2g
+    G4,     // +/- 4g
+    G8,     // +/- 8g
+    G16     // +/- 16g
+  };
+}
+const int GYRO_MODE_POSITION = 4;
+const u8 GYRO_MODE_MASK = 0xF0;
+// imu_conf[4:7] in deg / s
+namespace gyro_conf_modes
+{
+  enum GYRO_CONF_MODE
+  {
+    DEG_S2000 = 0,  // +/- 2000 deg / s
+    DEG_S1000,      // +/- 1000 deg / s
+    DEG_S500,       // +/- 500 deg / s
+    DEG_S250,       // +/- 250 deg / s
+    DEG_S125        // +/- 125 deg / s
+  };
+}
+
+void imu_aux_callback(u16 sender_id, u8 len, u8 msg[], void *context)
+{
+  msg_imu_aux_t *imuauxmsg = (msg_imu_aux_t *)msg;
+  int acc_mode = (imuauxmsg->imu_conf & ACC_MODE_MASK) >> ACC_MODE_POSITION;
+  int gyro_mode = (imuauxmsg->imu_conf & GYRO_MODE_MASK) >> GYRO_MODE_POSITION;
+  //ROS_INFO("IMU %x gyro:%d acc:%d", imuauxmsg->imu_conf, gyro_mode, acc_mode);
+  switch (acc_mode)
+  {
+    case acc_conf_modes::G2:
+      linear_acc_conf = 16384;
+      break;
+    case acc_conf_modes::G4:
+      linear_acc_conf = 8192;
+      break;
+    case acc_conf_modes::G8:
+      linear_acc_conf = 4096;
+      break;
+    case acc_conf_modes::G16:
+      linear_acc_conf = 2048;
+      break;
+  }
+  switch (gyro_mode)
+  {
+    case gyro_conf_modes::DEG_S2000:
+      angular_vel_conf = 16.4;
+      break;
+    case gyro_conf_modes::DEG_S1000:
+      angular_vel_conf = 32.8;
+      break;
+    case gyro_conf_modes::DEG_S500:
+      angular_vel_conf = 65.6;
+      break;
+    case gyro_conf_modes::DEG_S250:
+      angular_vel_conf = 131.2;
+      break;
+    case gyro_conf_modes::DEG_S125:
+      angular_vel_conf = 262.4;
+      break;
+  }
+  if (first_run_imu_conf){
+    ROS_INFO("Duro IMU initalized");
+    first_run_imu_conf = false;
+  }
 }
 
 void mag_callback(u16 sender_id, u8 len, u8 msg[], void *context)
@@ -296,6 +383,7 @@ int main(int argc, char **argv)
   sbp_register_callback(&s, SBP_MSG_ORIENT_QUAT, &orientation_callback, NULL, &orientation_callback_node);
   sbp_register_callback(&s, SBP_MSG_ORIENT_EULER, &orientation_euler_callback, NULL, &orientation_euler_callback_node);
   sbp_register_callback(&s, SBP_MSG_IMU_RAW, &imu_callback, NULL, &imu_callback_node);
+  sbp_register_callback(&s, SBP_MSG_IMU_AUX, &imu_aux_callback, NULL, &imu_aux_callback_node);
   sbp_register_callback(&s, SBP_MSG_MAG_RAW, &mag_callback, NULL, &mag_callback_node);
 
   while (ros::ok())
