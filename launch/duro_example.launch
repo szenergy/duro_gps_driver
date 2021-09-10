@@ -7,6 +7,12 @@
             <param name="gps_receiver_frame_id" value="duro"/>
             <param name="imu_frame_id" value="duro"/>
             <param name="utm_frame_id" value="map"/>
+            <!-- z_coord_ref_switch can be zero / zero_based / orig 
+            zero: the Z coordinate is always 0
+            zero_based: Z coordinate starts from 0 and relative
+            orig: the original Z provided by Duro / Piksi
+            -->
+            <param name="z_coord_ref_switch" value="zero_based"/>
         </node>
     </group>
 </launch>

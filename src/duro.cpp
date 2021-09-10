@@ -43,6 +43,7 @@ int tcp_ip_port;
 std::string gps_receiver_frame_id;
 std::string imu_frame_id;
 std::string utm_frame_id;
+std::string z_coord_ref_switch;
 static sbp_msg_callbacks_node_t heartbeat_callback_node;
 static sbp_msg_callbacks_node_t pos_ll_callback_node;
 static sbp_msg_callbacks_node_t orientation_callback_node;
@@ -60,6 +61,8 @@ int socket_desc = -1;
 double linear_acc_conf = -1.0; //4096; // default acc_range 8g
 double angular_vel_conf = -1.0; //262.4; // default gyro_range 125
 bool first_run_imu_conf = true;
+bool first_run_z_coord = true;
+double z_coord_start = 0.0;
 
 void setup_socket()
 {
@@ -162,8 +165,22 @@ void pos_ll_callback(u16 sender_id, u8 len, u8 msg[], void *context)
     pose_msg.header.frame_id = utm_frame_id;
     pose_msg.pose.position.x = x;
     pose_msg.pose.position.y = y;
-    pose_msg.pose.position.z = 0; //latlonmsg->height;
 
+    if (first_run_z_coord){
+      z_coord_start = latlonmsg->height;
+      first_run_z_coord = false;
+    }
+
+    // z_coord_ref_switch can be zero / zero_based / orig 
+    if (z_coord_ref_switch.compare("zero") == 0){
+      pose_msg.pose.position.z = 0;
+    }
+    else if (z_coord_ref_switch.compare("zero_based") == 0){
+      pose_msg.pose.position.z = latlonmsg->height - z_coord_start;
+    }
+    else if (z_coord_ref_switch.compare("orig") == 0){
+      pose_msg.pose.position.z = latlonmsg->height;
+    }
     pose_pub.publish(pose_msg); //
 
     switch (fix_mode)
@@ -375,6 +392,7 @@ int main(int argc, char **argv)
   n_private.param<std::string>("gps_receiver_frame_id", gps_receiver_frame_id, "duro_link");
   n_private.param<std::string>("imu_frame_id", imu_frame_id, gps_receiver_frame_id);
   n_private.param<std::string>("utm_frame_id", utm_frame_id, "utm");
+  n_private.param<std::string>("z_coord_ref_switch", z_coord_ref_switch, "zero");
   ROS_INFO("Connecting to duro on %s:%d", tcp_ip_addr.c_str(), tcp_ip_port);
 
   setup_socket();
