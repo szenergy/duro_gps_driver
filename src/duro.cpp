@@ -8,6 +8,7 @@
 #include "sensor_msgs/NavSatStatus.h"
 #include "sensor_msgs/Imu.h"
 #include "sensor_msgs/MagneticField.h"
+#include "sensor_msgs/TimeReference.h"
 #include "geometry_msgs/Vector3.h"
 #include "geometry_msgs/PoseStamped.h"
 #include "tf2/LinearMath/Quaternion.h"
@@ -37,6 +38,7 @@ ros::Publisher euler_pub;
 ros::Publisher pose_pub;
 ros::Publisher status_flag_pub;
 ros::Publisher status_stri_pub;
+ros::Publisher time_ref_pub;
 
 std::string tcp_ip_addr;
 int tcp_ip_port;
@@ -245,6 +247,20 @@ void orientation_callback(u16 sender_id, u8 len, u8 msg[], void *context)
   pose_msg.pose.orientation.z = tf_aligned.z();      // left-handerd / right handed orientation
 }
 
+void time_callback(u16 sender_id, u8 len, u8 msg[], void *context)
+{
+		msg_gps_time_t time_gps = *(msg_gps_time_t*) msg;
+    sensor_msgs::TimeReferencePtr time_msg;
+
+    time_msg->header.frame_id = "ros_time";
+    time_msg->header.stamp = ros::Time::now();
+    time_msg->time_ref.sec = time_gps.tow; // TODO - It is not sec: GPS time of week rounded to the nearest millisecond [ms]
+    time_msg->time_ref.nsec = time_gps.ns_residual; // TODO - It is not nsec: Nanosecond residual of millisecond-rounded TOW
+    time_msg->source = "gps_duro";
+
+    time_ref_pub.publish(time_msg);
+}
+
 void orientation_euler_callback(u16 sender_id, u8 len, u8 msg[], void *context)
 {
   // enable MSG ID 545 in swift console
@@ -385,6 +401,7 @@ int main(int argc, char **argv)
   euler_pub = n.advertise<geometry_msgs::Vector3>("rollpitchyaw", 100);
   status_flag_pub = n.advertise<std_msgs::UInt8>("status_flag", 100);
   status_stri_pub = n.advertise<std_msgs::String>("status_string", 100);
+  time_ref_pub = n.advertise<sensor_msgs::TimeReference>("time_ref", 100);
 
   ros::NodeHandle n_private("~");
   n_private.param<std::string>("ip_address", tcp_ip_addr, "192.168.0.222");
@@ -403,6 +420,8 @@ int main(int argc, char **argv)
   sbp_register_callback(&s, SBP_MSG_IMU_RAW, &imu_callback, NULL, &imu_callback_node);
   sbp_register_callback(&s, SBP_MSG_IMU_AUX, &imu_aux_callback, NULL, &imu_aux_callback_node);
   sbp_register_callback(&s, SBP_MSG_MAG_RAW, &mag_callback, NULL, &mag_callback_node);
+  sbp_register_callback(&s, SBP_MSG_GPS_TIME, &time_callback, NULL, &time_callback_node);
+
 
   while (ros::ok())
   {
