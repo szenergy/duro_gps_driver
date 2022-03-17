@@ -254,8 +254,14 @@ void time_callback(u16 sender_id, u8 len, u8 msg[], void *context)
 
     time_msg->header.frame_id = "ros_time";
     time_msg->header.stamp = ros::Time::now();
-    time_msg->time_ref.sec = time_gps.tow; // TODO - It is not sec: GPS time of week rounded to the nearest millisecond [ms]
-    time_msg->time_ref.nsec = time_gps.ns_residual; // TODO - It is not nsec: Nanosecond residual of millisecond-rounded TOW
+    
+    //rounded msec + residual nsec -> truncated sec + remainder nsec
+    long long int ttemp = time_gps.tow * 1000000 + time_gps.ns_residual;
+    time_msg->time_ref.nsec = ttemp % 1000000000;
+    ttemp -= time_msg->time_ref.nsec;
+    ttemp *= 0.000000001;
+    time_msg->time_ref.sec = ttemp;
+
     time_msg->source = "gps_duro";
 
     time_ref_pub.publish(time_msg);
