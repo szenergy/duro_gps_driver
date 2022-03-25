@@ -239,7 +239,7 @@ void orientation_callback(u16 sender_id, u8 len, u8 msg[], void *context)
   double z = orimsg->z * pow(2, -31);
   tf2::Quaternion tf_orig(x, y, z, w);
   tf2::Quaternion tf_rot, tf_aligned;
-  tf_rot.setRPY(0.0, 0.0, -M_PI_2); // left-handerd / right handed rotation
+  tf_rot.setRPY(0.0, 0.0, -M_PI_2 - 0.02175); // left-handerd / right handed rotation
   tf_aligned = tf_rot * tf_orig;    // left-handerd / right handed rotation
   pose_msg.pose.orientation.w = tf_aligned.w() * -1;
   pose_msg.pose.orientation.x = tf_aligned.y();      // left-handerd / right handed orientation
@@ -249,20 +249,17 @@ void orientation_callback(u16 sender_id, u8 len, u8 msg[], void *context)
 
 void time_callback(u16 sender_id, u8 len, u8 msg[], void *context)
 {
-		msg_gps_time_t time_gps = *(msg_gps_time_t*) msg;
-    sensor_msgs::TimeReferencePtr time_msg;
+		msg_gps_time_t *time_gps = (msg_gps_time_t*) msg;
+    sensor_msgs::TimeReference time_msg;
 
-    time_msg->header.frame_id = "ros_time";
-    time_msg->header.stamp = ros::Time::now();
+    time_msg.header.frame_id = "ros_time";
+    time_msg.header.stamp = ros::Time::now();
     
     //rounded msec + residual nsec -> truncated sec + remainder nsec
-    long long int ttemp = time_gps.tow * 1000000 + time_gps.ns_residual;
-    time_msg->time_ref.nsec = ttemp % 1000000000;
-    ttemp -= time_msg->time_ref.nsec;
-    ttemp *= 0.000000001;
-    time_msg->time_ref.sec = ttemp;
-
-    time_msg->source = "gps_duro";
+    long long int ttemp = (time_gps->tow * 1000000 + time_gps->ns_residual) % 1000000000;
+    time_msg.time_ref.nsec = ttemp;
+    time_msg.time_ref.sec = time_gps->tow / 1000;
+    time_msg.source = "gps_duro";
 
     time_ref_pub.publish(time_msg);
 }
