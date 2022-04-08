@@ -239,7 +239,7 @@ void orientation_callback(u16 sender_id, u8 len, u8 msg[], void *context)
   double z = orimsg->z * pow(2, -31);
   tf2::Quaternion tf_orig(x, y, z, w);
   tf2::Quaternion tf_rot, tf_aligned;
-  tf_rot.setRPY(0.0, 0.0, -M_PI_2 - 0.02175); // left-handerd / right handed rotation
+  tf_rot.setRPY(0.0, 0.0, -M_PI_2); // left-handerd / right handed rotation
   tf_aligned = tf_rot * tf_orig;    // left-handerd / right handed rotation
   pose_msg.pose.orientation.w = tf_aligned.w() * -1;
   pose_msg.pose.orientation.x = tf_aligned.y();      // left-handerd / right handed orientation
