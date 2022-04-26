@@ -48,7 +48,7 @@ std::string utm_frame_id;
 std::string z_coord_ref_switch;
 static sbp_msg_callbacks_node_t heartbeat_callback_node;
 static sbp_msg_callbacks_node_t pos_ll_callback_node;
-static sbp_msg_callbacks_node_t orientation_callback_node;
+//static sbp_msg_callbacks_node_t orientation_callback_node;
 static sbp_msg_callbacks_node_t orientation_euler_callback_node;
 static sbp_msg_callbacks_node_t time_callback_node;
 static sbp_msg_callbacks_node_t imu_callback_node;
@@ -227,6 +227,7 @@ void pos_ll_callback(u16 sender_id, u8 len, u8 msg[], void *context)
   status_stri_pub.publish(stflags);
 }
 
+/*
 void orientation_callback(u16 sender_id, u8 len, u8 msg[], void *context)
 {
   // enable MSG ID 544 in swift console
@@ -246,6 +247,7 @@ void orientation_callback(u16 sender_id, u8 len, u8 msg[], void *context)
   pose_msg.pose.orientation.y = tf_aligned.x() * -1; // left-handerd / right handed orientation
   pose_msg.pose.orientation.z = tf_aligned.z();      // left-handerd / right handed orientation
 }
+*/
 
 void time_callback(u16 sender_id, u8 len, u8 msg[], void *context)
 {
@@ -273,6 +275,14 @@ void orientation_euler_callback(u16 sender_id, u8 len, u8 msg[], void *context)
   eulervect.y = orimsg->pitch / 57292374.;
   eulervect.z = orimsg->yaw / 57292374.;
   euler_pub.publish(eulervect);
+
+  tf2::Quaternion fromeuler;
+  fromeuler.setRPY(eulervect.x, eulervect.y, (eulervect.z * -1) + M_PI_2);  // left-handerd / right handed orientation
+  pose_msg.pose.orientation.w = fromeuler.getW();
+  pose_msg.pose.orientation.x = fromeuler.getX();
+  pose_msg.pose.orientation.y = fromeuler.getY();
+  pose_msg.pose.orientation.z = fromeuler.getZ();
+
 }
 
 const double G_TO_M_S2 = 9.80665; // constans to convert g to m/s^2
@@ -418,7 +428,7 @@ int main(int argc, char **argv)
   setup_socket();
   sbp_state_init(&s);
   sbp_register_callback(&s, SBP_MSG_POS_LLH, &pos_ll_callback, NULL, &pos_ll_callback_node);
-  sbp_register_callback(&s, SBP_MSG_ORIENT_QUAT, &orientation_callback, NULL, &orientation_callback_node);
+  //sbp_register_callback(&s, SBP_MSG_ORIENT_QUAT, &orientation_callback, NULL, &orientation_callback_node);
   sbp_register_callback(&s, SBP_MSG_ORIENT_EULER, &orientation_euler_callback, NULL, &orientation_euler_callback_node);
   sbp_register_callback(&s, SBP_MSG_IMU_RAW, &imu_callback, NULL, &imu_callback_node);
   sbp_register_callback(&s, SBP_MSG_IMU_AUX, &imu_aux_callback, NULL, &imu_aux_callback_node);
