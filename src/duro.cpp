@@ -46,6 +46,7 @@ std::string gps_receiver_frame_id;
 std::string imu_frame_id;
 std::string utm_frame_id;
 std::string z_coord_ref_switch;
+bool euler_based_orientation;
 static sbp_msg_callbacks_node_t heartbeat_callback_node;
 static sbp_msg_callbacks_node_t pos_ll_callback_node;
 static sbp_msg_callbacks_node_t orientation_callback_node;
@@ -227,25 +228,29 @@ void pos_ll_callback(u16 sender_id, u8 len, u8 msg[], void *context)
   status_stri_pub.publish(stflags);
 }
 
+
 void orientation_callback(u16 sender_id, u8 len, u8 msg[], void *context)
 {
   // enable MSG ID 544 in swift console
   // the MSG ID comes from eg #define SBP_MSG_ORIENT_QUAT 0x0220 --> 544
-  msg_orient_quat_t *orimsg = (msg_orient_quat_t *)msg;
+  if (!euler_based_orientation){
+    msg_orient_quat_t *orimsg = (msg_orient_quat_t *)msg;
 
-  double w = orimsg->w * pow(2, -31);
-  double x = orimsg->x * pow(2, -31);
-  double y = orimsg->y * pow(2, -31);
-  double z = orimsg->z * pow(2, -31);
-  tf2::Quaternion tf_orig(x, y, z, w);
-  tf2::Quaternion tf_rot, tf_aligned;
-  tf_rot.setRPY(0.0, 0.0, -M_PI_2); // left-handerd / right handed rotation
-  tf_aligned = tf_rot * tf_orig;    // left-handerd / right handed rotation
-  pose_msg.pose.orientation.w = tf_aligned.w() * -1;
-  pose_msg.pose.orientation.x = tf_aligned.y();      // left-handerd / right handed orientation
-  pose_msg.pose.orientation.y = tf_aligned.x() * -1; // left-handerd / right handed orientation
-  pose_msg.pose.orientation.z = tf_aligned.z();      // left-handerd / right handed orientation
+    double w = orimsg->w * pow(2, -31);
+    double x = orimsg->x * pow(2, -31);
+    double y = orimsg->y * pow(2, -31);
+    double z = orimsg->z * pow(2, -31);
+    tf2::Quaternion tf_orig(x, y, z, w);
+    tf2::Quaternion tf_rot, tf_aligned;
+    tf_rot.setRPY(0.0, 0.0, -M_PI_2); // left-handerd / right handed rotation
+    tf_aligned = tf_rot * tf_orig;    // left-handerd / right handed rotation
+    pose_msg.pose.orientation.w = tf_aligned.w() * -1;
+    pose_msg.pose.orientation.x = tf_aligned.y();      // left-handerd / right handed orientation
+    pose_msg.pose.orientation.y = tf_aligned.x() * -1; // left-handerd / right handed orientation
+    pose_msg.pose.orientation.z = tf_aligned.z();      // left-handerd / right handed orientation
+  }
 }
+
 
 void time_callback(u16 sender_id, u8 len, u8 msg[], void *context)
 {
@@ -273,6 +278,14 @@ void orientation_euler_callback(u16 sender_id, u8 len, u8 msg[], void *context)
   eulervect.y = orimsg->pitch / 57292374.;
   eulervect.z = orimsg->yaw / 57292374.;
   euler_pub.publish(eulervect);
+  if (euler_based_orientation){
+    tf2::Quaternion fromeuler;
+    fromeuler.setRPY(eulervect.x, eulervect.y, (eulervect.z * -1) + M_PI_2);  // left-handerd / right handed orientation
+    pose_msg.pose.orientation.w = fromeuler.getW();
+    pose_msg.pose.orientation.x = fromeuler.getX();
+    pose_msg.pose.orientation.y = fromeuler.getY();
+    pose_msg.pose.orientation.z = fromeuler.getZ();
+  }
 }
 
 const double G_TO_M_S2 = 9.80665; // constans to convert g to m/s^2
@@ -413,6 +426,7 @@ int main(int argc, char **argv)
   n_private.param<std::string>("imu_frame_id", imu_frame_id, gps_receiver_frame_id);
   n_private.param<std::string>("utm_frame_id", utm_frame_id, "utm");
   n_private.param<std::string>("z_coord_ref_switch", z_coord_ref_switch, "zero");
+  n_private.param<bool>("euler_based_orientation", euler_based_orientation, true);
   ROS_INFO("Connecting to duro on %s:%d", tcp_ip_addr.c_str(), tcp_ip_port);
 
   setup_socket();
@@ -424,6 +438,7 @@ int main(int argc, char **argv)
   sbp_register_callback(&s, SBP_MSG_IMU_AUX, &imu_aux_callback, NULL, &imu_aux_callback_node);
   sbp_register_callback(&s, SBP_MSG_MAG_RAW, &mag_callback, NULL, &mag_callback_node);
   sbp_register_callback(&s, SBP_MSG_GPS_TIME, &time_callback, NULL, &time_callback_node);
+  ROS_INFO("Success on %s:%d", tcp_ip_addr.c_str(), tcp_ip_port);
 
 
   while (ros::ok())
