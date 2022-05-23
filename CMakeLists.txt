@@ -69,7 +69,7 @@ link_directories("/usr/local/lib/")
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-add_executable(duronode src/duro.cpp src/utm.cpp)
+add_executable(duronode src/duro.cpp src/utm.cpp src/fake_orientation.cpp)
 #add_executable(libsbp_tcp_example src/tcp_example.c)
 
 ## Rename C++ executable without prefix
