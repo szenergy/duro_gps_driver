@@ -150,6 +150,7 @@ void pos_ll_callback(u16 sender_id, u8 len, u8 msg[], void *context)
   {
     fix.latitude = latlonmsg->lat;
     fix.longitude = latlonmsg->lon;
+    fix.altitude = latlonmsg->height;
     // covariance matrix
     double h_covariance = pow(latlonmsg->h_accuracy * 1e-3, 2); // Convert mm to m and take the ^2 for going from std to cov
     double v_covariance = pow(latlonmsg->v_accuracy * 1e-3, 2); // Convert mm to m and take the ^2 for going from std to cov
