@@ -176,7 +176,7 @@ void pos_ll_callback(u16 sender_id, u8 len, u8 msg[], void *context)
     pose_msg.pose.position.y = y;
 
     fake_ori.addXY(x, y);
-    //fake_ori.printAll();
+    // fake_ori.printAll();
     //ROS_INFO_STREAM(fake_ori.getOri());
 
     if (first_run_z_coord)
@@ -198,7 +198,6 @@ void pos_ll_callback(u16 sender_id, u8 len, u8 msg[], void *context)
     {
       pose_msg.pose.position.z = latlonmsg->height;
     }
-    pose_pub.publish(pose_msg);
     fake_pose_msg.header = pose_msg.header;
     fake_pose_msg.pose.position = pose_msg.pose.position;
     tf2::Quaternion fake_quat;
@@ -208,7 +207,7 @@ void pos_ll_callback(u16 sender_id, u8 len, u8 msg[], void *context)
     fake_pose_msg.pose.orientation.y = fake_quat.getY();
     fake_pose_msg.pose.orientation.z = fake_quat.getZ();
     fake_pub.publish(fake_pose_msg);
-
+    pose_pub.publish(fake_pose_msg);
     fake_ori.setStatus(fix_mode);
     switch (fix_mode)
     {

@@ -1,23 +1,21 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <launch>
-    <group ns="gps/duro">
-        <node pkg="duro_ros" type="duronode" name="duro_driver" output="screen">
-            <param name="ip_address" value="192.168.1.10"/>
-            <param name="port" value="55555"/>
-            <param name="gps_receiver_frame_id" value="duro"/>
-            <param name="imu_frame_id" value="duro"/>
-            <param name="utm_frame_id" value="map"/>
-            <!-- z_coord_ref_switch can be zero / zero_based / orig 
-            zero: the Z coordinate is always 0
-            zero_based: Z coordinate starts from 0 and relative
-            orig: the original Z provided by Duro / Piksi
-            -->
-            <param name="z_coord_ref_switch" value="zero_based"/>
-            <!-- euler_based_orientation
-            true: euler based, not enabled by default, please enable SPB message SBP_MSG_ORIENT_EULER 0x0221 decimal 545
-            false: quaternion based, not enabled by default, please enable SPB message SBP_MSG_ORIENT_QUAT 0x0220 decimal 544
-            -->
-            <param name="euler_based_orientation" value="true" />
-        </node>
-    </group>
+    <node pkg="duro_ros" type="duronode" name="duro_driver" output="screen">
+        <param name="ip_address" value="192.168.1.222"/>
+        <param name="port" value="55555"/>
+        <param name="gps_receiver_frame_id" value="duro"/>
+        <param name="imu_frame_id" value="duro"/>
+        <param name="utm_frame_id" value="map"/>
+        <!-- z_coord_ref_switch can be zero / zero_based / orig 
+        zero: the Z coordinate is always 0
+        zero_based: Z coordinate starts from 0 and relative
+        orig: the original Z provided by Duro / Piksi
+        -->
+        <param name="z_coord_ref_switch" value="zero_based"/>
+        <!-- euler_based_orientation
+        true: euler based, not enabled by default, please enable SPB message SBP_MSG_ORIENT_EULER 0x0221 decimal 545
+        false: quaternion based, not enabled by default, please enable SPB message SBP_MSG_ORIENT_QUAT 0x0220 decimal 544
+        -->
+        <param name="euler_based_orientation" value="true" />
+    </node>
 </launch>

@@ -1,6 +1,7 @@
 #include "fake_orientation.hpp"
 #include <cmath>
 #include <vector>
+#include <iomanip>  
 #include <iostream>
 
 namespace fix_modes
@@ -31,6 +32,7 @@ void FakeOri::setStatus(int fix_mode) {
 }
 
 void FakeOri::printAll() {
+    
     for (int i = 0; i < x_vect.size(); i++) {
         std::cout << x_vect[i] - x_vect[0] << " " << y_vect[i] - y_vect[0] << ", ";
     }
@@ -43,14 +45,16 @@ double FakeOri::calcOrientation(int p1, int p2) const {
 }
 
 double FakeOri::getDistance() const {
-    double dist = abs(sqrt(pow(y_vect[0] - y_vect[9], 2) + pow(x_vect[0] - x_vect[9], 2)));
-    //std::cout << "\n **" << dist << "** ";
+
+    if(x_vect.size() < 9 || y_vect.size() < 9)
+        return 0;
+    double dist = fabs(sqrt(pow(y_vect.front() - y_vect.back(), 2) + pow(x_vect.front() - x_vect.back(), 2)));
+    // std::cout << "\n **" << dist << "** ";
     return dist;
 }
 
 double FakeOri::getOri() const {
     double ret = fake_orientation;
-    // if there is not enough mesaurement
     if (x_vect.size() < 10 ){
         return ret;
     }
