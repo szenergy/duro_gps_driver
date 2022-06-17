@@ -58,7 +58,7 @@ double FakeOri::getOri() const {
     if (x_vect.size() < 10 ){
         return ret;
     }
-    if(getDistance() < 0.1){
+    if(getDistance() < 0.3){
         return ret;
         //std::cout << "aaa\n";
     } 
