@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.5)
 project(duro_gps_driver)
 
-# Default to C++14
+# Default to C++17
 set(CMAKE_CXX_STANDARD 17)
 # add_compile_options(-std=c++17 -O2)
 
@@ -42,12 +42,17 @@ ament_target_dependencies(duro_node ${ament_dependencies})
 ## Install
 ## Mark executables and/or libraries for installation
 install(TARGETS duro_node
-   DESTINATION lib
+  RUNTIME DESTINATION lib/${PROJECT_NAME}
 )
 
 ## Mark cpp header files for installation
-install(DIRECTORY include/
-   DESTINATION include/
+install(DIRECTORY include/${PROJECT_NAME}
+  DESTINATION include/${PROJECT_NAME}
+)
+
+## Mark launch files for installation
+install(DIRECTORY launch 
+  DESTINATION share/${PROJECT_NAME}
 )
 
 ament_package()
