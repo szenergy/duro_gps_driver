@@ -19,7 +19,7 @@
  * @brief The coordinate transition program for the v2x module
  */
 
-#include "UTM.h"
+#include "duro_gps_driver/UTM.h"
 
 CoordinateTransition::CoordinateTransition() {}
 
