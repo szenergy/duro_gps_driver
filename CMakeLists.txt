@@ -30,14 +30,12 @@ set(ament_dependencies
   tf2_ros
   tf2_geometry_msgs
 )
-# set(
-#   sbp "/usr/local/lib/libsbp.a"
-# )
+# link_directories("/usr/local/lib/")
 
 add_executable(duro_node src/duro_node.cpp src/utm.cpp src/fake_orientation.cpp)
 
 ament_target_dependencies(duro_node ${ament_dependencies})
-# target_link_libraries(duro_node sbp)
+target_link_libraries(duro_node "/usr/local/lib/libsbp.a")
 
 ## Install
 ## Mark executables and/or libraries for installation

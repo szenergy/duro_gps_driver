@@ -44,7 +44,28 @@ public:
     time_ref_pub_ = this->create_publisher<sensor_msgs::msg::TimeReference>("time_ref", 100);
     // timer_ = this->create_wall_timer(
     // 500ms, std::bind(&MinimalPublisher::timer_callback, this));
+    this->declare_parameter<std::string>("ip_address", "192.168.1.222");
+    this->declare_parameter<int>("port", 55555);
+    this->declare_parameter<std::string>("gps_receiver_frame", "duro");
+    this->declare_parameter<std::string>("imu_frame", "duro");
+    this->declare_parameter<std::string>("utm_frame", "map");
+    this->declare_parameter<std::string>("orientation_source", "gps");
+    this->declare_parameter<std::string>("z_coord_ref_switch", "orig");
+    this->declare_parameter<bool>("euler_based_orientation", true);
+
+    this->get_parameter("ip_address", tcp_ip_addr_);
+    this->get_parameter("port", tcp_ip_port_);
+    this->get_parameter("gps_receiver_frame", gps_receiver_frame_);
+    this->get_parameter("imu_frame", imu_frame_);
+    this->get_parameter("utm_frame", utm_frame_);
+    this->get_parameter("orientation_source", orientation_source_);
+    this->get_parameter("z_coord_ref_switch", z_coord_ref_switch_);
+    this->get_parameter("euler_based_orientation", euler_based_orientation_);
+
   }
+
+  void run();
+
 private:
   // Publishers
   rclcpp::Publisher<sensor_msgs::msg::NavSatFix>::SharedPtr navsatfix_pub_;
@@ -72,32 +93,35 @@ private:
   std_msgs::msg::String status_string_msg_;
   sensor_msgs::msg::TimeReference time_ref_msg_;
 
-  std::string tcp_ip_addr;
-  int tcp_ip_port;
-  std::string gps_receiver_frame_id;
-  std::string imu_frame_id;
-  std::string utm_frame_id;
-  std::string z_coord_ref_switch;
-  std::string orientation_source;
-  bool euler_based_orientation;
-  static sbp_msg_callbacks_node_t heartbeat_callback_node;
-  static sbp_msg_callbacks_node_t pos_ll_callback_node;
-  static sbp_msg_callbacks_node_t orientation_callback_node;
-  static sbp_msg_callbacks_node_t orientation_euler_callback_node;
-  static sbp_msg_callbacks_node_t time_callback_node;
-  static sbp_msg_callbacks_node_t imu_callback_node;
-  static sbp_msg_callbacks_node_t imu_aux_callback_node;
-  static sbp_msg_callbacks_node_t mag_callback_node;
+  // ROS node parameters
+  std::string tcp_ip_addr_;
+  int tcp_ip_port_;
+  std::string gps_receiver_frame_;
+  std::string imu_frame_;
+  std::string utm_frame_;
+  std::string orientation_source_;
+  std::string z_coord_ref_switch_;
+  bool euler_based_orientation_;
 
-  CoordinateTransition coordinate_transition;
-  FakeOri fake_ori;
+  // SBP callbacks node
+  // sbp_msg_callbacks_node_t heartbeat_callback_node_;
+  static sbp_msg_callbacks_node_t pos_ll_callback_node_;
+  static sbp_msg_callbacks_node_t orientation_callback_node_;
+  static sbp_msg_callbacks_node_t orientation_euler_callback_node_;
+  static sbp_msg_callbacks_node_t time_callback_node_;
+  static sbp_msg_callbacks_node_t imu_callback_node_;
+  static sbp_msg_callbacks_node_t imu_aux_callback_node_;
+  static sbp_msg_callbacks_node_t mag_callback_node_;
 
-  int socket_desc = -1;
-  double linear_acc_conf = -1.0;  //4096; // default acc_range 8g
-  double angular_vel_conf = -1.0; //262.4; // default gyro_range 125
-  bool first_run_imu_conf = true;
-  bool first_run_z_coord = true;
-  double z_coord_start = 0.0;
+  CoordinateTransition coordinate_transition_;
+  FakeOri fake_ori_;
+
+  int socket_desc_ = -1;
+  double linear_acc_conf_ = -1.0;  //4096; // default acc_range 8g
+  double angular_vel_conf_ = -1.0; //262.4; // default gyro_range 125
+  bool first_run_imu_conf_ = true;
+  bool first_run_z_coord_ = true;
+  double z_coord_start_ = 0.0;
 
   void setup_socket();
   void close_socket();

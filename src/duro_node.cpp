@@ -13,18 +13,18 @@
 void DuroNode::setup_socket()
 {
   struct sockaddr_in server;
-  socket_desc = socket(AF_INET, SOCK_STREAM, 0);
-  if (socket_desc == -1)
+  socket_desc_ = socket(AF_INET, SOCK_STREAM, 0);
+  if (socket_desc_ == -1)
   {
     RCLCPP_ERROR(this->get_logger(), "Could not create socket");
   }
 
   memset(&server, '0', sizeof(server));
-  server.sin_addr.s_addr = inet_addr(tcp_ip_addr.c_str());
+  server.sin_addr.s_addr = inet_addr(tcp_ip_addr_.c_str());
   server.sin_family = AF_INET;
-  server.sin_port = htons(tcp_ip_port);
+  server.sin_port = htons(tcp_ip_port_);
 
-  if (connect(socket_desc, (struct sockaddr *)&server, sizeof(server)) < 0)
+  if (connect(socket_desc_, (struct sockaddr *)&server, sizeof(server)) < 0)
   {
     RCLCPP_ERROR(this->get_logger(), "Connection error");
   }
@@ -32,7 +32,7 @@ void DuroNode::setup_socket()
 
 void DuroNode::close_socket()
 {
-  close(socket_desc);
+  close(socket_desc_);
 }
 
 // first three bits are fix mode
@@ -75,7 +75,7 @@ void DuroNode::pos_ll_callback(u16 sender_id, u8 len, u8 msg[], void *context)
   msg_pos_llh_t *latlonmsg = (msg_pos_llh_t *)msg;
   // navsatfix (latlon) message over ROS
   navsatfix_msg_.header.stamp = this->now();
-  navsatfix_msg_.header.frame_id = gps_receiver_frame_id;
+  navsatfix_msg_.header.frame_id = gps_receiver_frame_;
 
   int ins_mode = (latlonmsg->flags & INS_MODE_MASK) >> INS_MODE_POSITION; // INS mode seems to remain 0...
   status_flag_msg_.data = (latlonmsg->flags & FIX_MODE_MASK) >> FIX_MODE_POSITION;
@@ -99,65 +99,65 @@ void DuroNode::pos_ll_callback(u16 sender_id, u8 len, u8 msg[], void *context)
     navsatfix_msg_.position_covariance_type = sensor_msgs::msg::NavSatFix::COVARIANCE_TYPE_DIAGONAL_KNOWN;
 
     double x = 0, y = 0;
-    coordinate_transition.LatLonToUTMXY(latlonmsg->lat, latlonmsg->lon, x, y);
+    coordinate_transition_.LatLonToUTMXY(latlonmsg->lat, latlonmsg->lon, x, y);
 
     odom_msg_.header.stamp = this->now();
-    odom_msg_.header.frame_id = utm_frame_id;
-    odom_msg_.child_frame_id = gps_receiver_frame_id;
+    odom_msg_.header.frame_id = utm_frame_;
+    odom_msg_.child_frame_id = gps_receiver_frame_;
     odom_msg_.pose.pose.position.x = x;
     odom_msg_.pose.pose.position.y = y;
     odom_msg_.pose.pose.position.z = latlonmsg->height;
     odom_pub_->publish(odom_msg_);
 
     pose_msg_.header.stamp = this->now();
-    pose_msg_.header.frame_id = utm_frame_id;
+    pose_msg_.header.frame_id = utm_frame_;
     pose_msg_.pose.position.x = x;
     pose_msg_.pose.position.y = y;
 
-    fake_ori.addXY(x, y);
-    // fake_ori.printAll();
-    //ROS_INFO_STREAM(fake_ori.getOri());
+    fake_ori_.addXY(x, y);
+    // fake_ori_.printAll();
+    //ROS_INFO_STREAM(fake_ori_.getOri());
 
-    if (first_run_z_coord)
+    if (first_run_z_coord_)
     {
-      z_coord_start = latlonmsg->height;
-      first_run_z_coord = false;
+      z_coord_start_ = latlonmsg->height;
+      first_run_z_coord_ = false;
     }
 
     // z_coord_ref_switch can be zero / zero_based / orig
-    if (z_coord_ref_switch.compare("zero") == 0)
+    if (z_coord_ref_switch_.compare("zero") == 0)
     {
       pose_msg_.pose.position.z = 0;
     }
-    else if (z_coord_ref_switch.compare("zero_based") == 0)
+    else if (z_coord_ref_switch_.compare("zero_based") == 0)
     {
-      pose_msg_.pose.position.z = latlonmsg->height - z_coord_start;
+      pose_msg_.pose.position.z = latlonmsg->height - z_coord_start_;
     }
-    else if (z_coord_ref_switch.compare("orig") == 0)
+    else if (z_coord_ref_switch_.compare("orig") == 0)
     {
       pose_msg_.pose.position.z = latlonmsg->height;
     }
     fake_pose_msg_.header = pose_msg_.header;
     fake_pose_msg_.pose.position = pose_msg_.pose.position;
     tf2::Quaternion fake_quat;
-    fake_quat.setRPY(0.0, 0.0, fake_ori.getOri() + M_PI);
+    fake_quat.setRPY(0.0, 0.0, fake_ori_.getOri() + M_PI);
     fake_pose_msg_.pose.orientation.w = fake_quat.getW();
     fake_pose_msg_.pose.orientation.x = fake_quat.getX();
     fake_pose_msg_.pose.orientation.y = fake_quat.getY();
     fake_pose_msg_.pose.orientation.z = fake_quat.getZ();
     fake_pub_->publish(fake_pose_msg_);
 
-    if (orientation_source.compare("gps")==0)
+    if (orientation_source_.compare("gps")==0)
     {
-    pose_pub_->publish(pose_msg_);
+      pose_pub_->publish(pose_msg_);
     }
-    else if (orientation_source.compare("odom")==0)
+    else if (orientation_source_.compare("odom")==0)
     {
-    pose_pub_->publish(fake_pose_msg_);
+      pose_pub_->publish(fake_pose_msg_);
     }
 
 
-    fake_ori.setStatus(status_flag_msg_.data);
+    fake_ori_.setStatus(status_flag_msg_.data);
     switch (status_flag_msg_.data)
     {
     case fix_modes::INVALID:
@@ -204,7 +204,7 @@ void DuroNode::orientation_callback(u16 sender_id, u8 len, u8 msg[], void *conte
 {
   // enable MSG ID 544 in swift console
   // the MSG ID comes from eg #define SBP_MSG_ORIENT_QUAT 0x0220 --> 544
-  if (!euler_based_orientation)
+  if (!euler_based_orientation_)
   {
     msg_orient_quat_t *orimsg = (msg_orient_quat_t *)msg;
 
@@ -245,10 +245,10 @@ void DuroNode::orientation_euler_callback(u16 sender_id, u8 len, u8 msg[], void 
   euler_vector_msg_.x = orimsg->roll / 57292374.; // 57292374: raw > microdegrees > rad constant
   euler_vector_msg_.y = orimsg->pitch / 57292374.;
   euler_vector_msg_.z = orimsg->yaw / 57292374.;
-  euler_fake_vector_msg_.z = fake_ori.getOri();
+  euler_fake_vector_msg_.z = fake_ori_.getOri();
   euler_pub_->publish(euler_vector_msg_);
   euler_pub_fake_->publish(euler_fake_vector_msg_);
-  if (euler_based_orientation)
+  if (euler_based_orientation_)
   {
     tf2::Quaternion fromeuler;
     fromeuler.setRPY(euler_vector_msg_.x, euler_vector_msg_.y, (euler_vector_msg_.z * -1) + M_PI_2); // left-handerd / right handed orientation
@@ -263,18 +263,18 @@ const double G_TO_M_S2 = 9.80665;       // constans to convert g to m/s^2
 const double GRAD_TO_RAD_ACC = 0.01745; // constans to convert to rad/sec
 void DuroNode::imu_callback(u16 sender_id, u8 len, u8 msg[], void *context)
 {
-  if (linear_acc_conf > 0)
+  if (linear_acc_conf_ > 0)
   {
     msg_imu_raw_t *imumsg = (msg_imu_raw_t *)msg;
     imu_msg_.header.stamp = this->now();
-    imu_msg_.header.frame_id = imu_frame_id;
-    imu_msg_.linear_acceleration.x = double(imumsg->acc_x) / linear_acc_conf * G_TO_M_S2;
-    imu_msg_.linear_acceleration.y = double(imumsg->acc_y) / linear_acc_conf * G_TO_M_S2;
-    imu_msg_.linear_acceleration.z = double(imumsg->acc_z) / linear_acc_conf * G_TO_M_S2;
+    imu_msg_.header.frame_id = imu_frame_;
+    imu_msg_.linear_acceleration.x = double(imumsg->acc_x) / linear_acc_conf_ * G_TO_M_S2;
+    imu_msg_.linear_acceleration.y = double(imumsg->acc_y) / linear_acc_conf_ * G_TO_M_S2;
+    imu_msg_.linear_acceleration.z = double(imumsg->acc_z) / linear_acc_conf_ * G_TO_M_S2;
 
-    imu_msg_.angular_velocity.x = double(imumsg->gyr_x) / angular_vel_conf * GRAD_TO_RAD_ACC; // Angular rate around IMU frame X axis
-    imu_msg_.angular_velocity.y = double(imumsg->gyr_y) / angular_vel_conf * GRAD_TO_RAD_ACC;
-    imu_msg_.angular_velocity.z = double(imumsg->gyr_z) / angular_vel_conf * GRAD_TO_RAD_ACC;
+    imu_msg_.angular_velocity.x = double(imumsg->gyr_x) / angular_vel_conf_ * GRAD_TO_RAD_ACC; // Angular rate around IMU frame X axis
+    imu_msg_.angular_velocity.y = double(imumsg->gyr_y) / angular_vel_conf_ * GRAD_TO_RAD_ACC;
+    imu_msg_.angular_velocity.z = double(imumsg->gyr_z) / angular_vel_conf_ * GRAD_TO_RAD_ACC;
 
     imu_msg_.orientation.w = pose_msg_.pose.orientation.w;
     imu_msg_.orientation.x = pose_msg_.pose.orientation.x;
@@ -321,40 +321,40 @@ void DuroNode::imu_aux_callback(u16 sender_id, u8 len, u8 msg[], void *context)
   switch (acc_mode)
   {
   case acc_conf_modes::G2:
-    linear_acc_conf = 16384;
+    linear_acc_conf_ = 16384;
     break;
   case acc_conf_modes::G4:
-    linear_acc_conf = 8192;
+    linear_acc_conf_ = 8192;
     break;
   case acc_conf_modes::G8:
-    linear_acc_conf = 4096;
+    linear_acc_conf_ = 4096;
     break;
   case acc_conf_modes::G16:
-    linear_acc_conf = 2048;
+    linear_acc_conf_ = 2048;
     break;
   }
   switch (gyro_mode)
   {
   case gyro_conf_modes::DEG_S2000:
-    angular_vel_conf = 16.4;
+    angular_vel_conf_ = 16.4;
     break;
   case gyro_conf_modes::DEG_S1000:
-    angular_vel_conf = 32.8;
+    angular_vel_conf_ = 32.8;
     break;
   case gyro_conf_modes::DEG_S500:
-    angular_vel_conf = 65.6;
+    angular_vel_conf_ = 65.6;
     break;
   case gyro_conf_modes::DEG_S250:
-    angular_vel_conf = 131.2;
+    angular_vel_conf_ = 131.2;
     break;
   case gyro_conf_modes::DEG_S125:
-    angular_vel_conf = 262.4;
+    angular_vel_conf_ = 262.4;
     break;
   }
-  if (first_run_imu_conf)
+  if (first_run_imu_conf_)
   {
     RCLCPP_INFO(this->get_logger(), "Duro IMU initalized");
-    first_run_imu_conf = false;
+    first_run_imu_conf_ = false;
   }
 }
 
@@ -362,7 +362,7 @@ void DuroNode::mag_callback(u16 sender_id, u8 len, u8 msg[], void *context)
 {
   msg_mag_raw_t *magmsg = (msg_mag_raw_t *)msg;
   mag_msg_.header.stamp = this->now();
-  mag_msg_.header.frame_id = imu_frame_id;
+  mag_msg_.header.frame_id = imu_frame_;
 
   mag_msg_.magnetic_field.x = magmsg->mag_x * 1e-6; // Magnetic field in the body frame X axis [microteslas]
   mag_msg_.magnetic_field.y = magmsg->mag_y * 1e-6;
@@ -372,13 +372,43 @@ void DuroNode::mag_callback(u16 sender_id, u8 len, u8 msg[], void *context)
 
 s32 DuroNode::socket_read(u8 *buff, u32 n, void *context)
 {
-  return read(socket_desc, buff, n);
+  return read(socket_desc_, buff, n);
+}
+
+sbp_msg_callbacks_node_t pos_ll_callback_node;
+void DuroNode::run()
+{
+  sbp_state_t sbp_state;
+  RCLCPP_INFO(this->get_logger(), "Running...");
+  RCLCPP_INFO(this->get_logger(), "Connecting to duro on %s:%d", tcp_ip_addr_.c_str(), tcp_ip_port_);
+
+  //setup_socket();
+  sbp_state_init(&sbp_state);
+  sbp_register_callback(&sbp_state, SBP_MSG_POS_LLH, (sbp_msg_callback_t) &DuroNode::pos_ll_callback, NULL, &pos_ll_callback_node_);
+  sbp_register_callback(&sbp_state, SBP_MSG_ORIENT_QUAT, (sbp_msg_callback_t) &DuroNode::orientation_callback, NULL, &orientation_callback_node_);
+  sbp_register_callback(&sbp_state, SBP_MSG_ORIENT_EULER, (sbp_msg_callback_t) &DuroNode::orientation_euler_callback, NULL, &orientation_euler_callback_node_);
+  sbp_register_callback(&sbp_state, SBP_MSG_IMU_RAW, (sbp_msg_callback_t) &DuroNode::imu_callback, NULL, &imu_callback_node_);
+  sbp_register_callback(&sbp_state, SBP_MSG_IMU_AUX, (sbp_msg_callback_t) &DuroNode::imu_aux_callback, NULL, &imu_aux_callback_node_);
+  sbp_register_callback(&sbp_state, SBP_MSG_MAG_RAW, (sbp_msg_callback_t) &DuroNode::mag_callback, NULL, &mag_callback_node_);
+  sbp_register_callback(&sbp_state, SBP_MSG_GPS_TIME, (sbp_msg_callback_t) &DuroNode::time_callback, NULL, &time_callback_node_);
+  RCLCPP_INFO(this->get_logger(), "Success on %s:%d", tcp_ip_addr_.c_str(), tcp_ip_port_);
+  
+  rclcpp::Rate loop_rate(10);
+  while (rclcpp::ok())
+  {
+    RCLCPP_INFO(this->get_logger(), "Running...");
+    //sbp_process(&s, &socket_read);
+    loop_rate.sleep();
+  }
+  close_socket();
 }
 
 int main(int argc, char * argv[])
 {
   rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_shared<DuroNode>());
+  auto node = std::make_shared<DuroNode>();
+  node->run();
+  //rclcpp::spin(node);
   rclcpp::shutdown();
   return 0;
 }
