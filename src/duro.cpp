@@ -50,6 +50,7 @@ std::string imu_frame_id;
 std::string utm_frame_id;
 std::string z_coord_ref_switch;
 std::string orientation_source;
+float z_coord_exact_height;
 bool euler_based_orientation;
 static sbp_msg_callbacks_node_t heartbeat_callback_node;
 static sbp_msg_callbacks_node_t pos_ll_callback_node;
@@ -186,10 +187,14 @@ void pos_ll_callback(u16 sender_id, u8 len, u8 msg[], void *context)
       first_run_z_coord = false;
     }
 
-    // z_coord_ref_switch can be zero / zero_based / orig
+    // z_coord_ref_switch can be zero / exact / zero_based / orig
     if (z_coord_ref_switch.compare("zero") == 0)
     {
       pose_msg.pose.position.z = 0;
+    }
+    else if (z_coord_ref_switch.compare("exact") == 0)
+    {
+      pose_msg.pose.position.z = z_coord_exact_height;
     }
     else if (z_coord_ref_switch.compare("zero_based") == 0)
     {
@@ -467,6 +472,7 @@ int main(int argc, char **argv)
   n_private.param<std::string>("imu_frame_id", imu_frame_id, gps_receiver_frame_id);
   n_private.param<std::string>("utm_frame_id", utm_frame_id, "utm");
   n_private.param<std::string>("z_coord_ref_switch", z_coord_ref_switch, "zero");
+  n_private.param<float>("z_coord_exact_height", z_coord_exact_height, 0.1);
   n_private.param<std::string>("orientation_source", orientation_source, "gps");
   n_private.param<bool>("euler_based_orientation", euler_based_orientation, true);
   ROS_INFO("Connecting to duro on %s:%d", tcp_ip_addr.c_str(), tcp_ip_port);

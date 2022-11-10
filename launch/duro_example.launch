@@ -14,8 +14,9 @@
 
         <param name="orientation_source" value="gps"/>
 
-        <!-- z_coord_ref_switch can be zero / zero_based / orig 
+        <!-- z_coord_ref_switch can be zero / exact / zero_based / orig 
         zero: the Z coordinate is always 0
+        exact: the Z coorindinate is always z_coord_exact_height param (must be set in this launch)
         zero_based: Z coordinate starts from 0 and relative
         orig: the original Z provided by Duro / Piksi
         -->
