@@ -19,6 +19,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <cmath>
+#include <string>
 // libsbp - Swift Binary Protocol library headers
 #include <libsbp/sbp.h>
 #include <libsbp/system.h>
@@ -42,6 +43,8 @@ ros::Publisher fake_pub;
 ros::Publisher status_flag_pub;
 ros::Publisher status_stri_pub;
 ros::Publisher time_ref_pub;
+ros::Publisher time_diff_pub;
+ros::Publisher time_gps_str_pub;
 
 std::string tcp_ip_addr;
 int tcp_ip_port;
@@ -301,10 +304,19 @@ void time_callback(u16 sender_id, u8 len, u8 msg[], void *context)
   //rounded msec + residual nsec -> truncated sec + remainder nsec
   long long int ttemp = (time_gps->tow * 1000000 + time_gps->ns_residual) % 1000000000;
   time_msg.time_ref.nsec = ttemp;
-  time_msg.time_ref.sec = time_gps->tow / 1000;
+  time_msg.time_ref.sec = time_gps->tow / 1000 + time_gps->wn * 604800 + 315964782;
   time_msg.source = "gps_duro";
+  std_msgs::Float64 diff_msg;
+  ros::Duration diff = time_msg.time_ref - time_msg.header.stamp;
+  diff_msg.data = diff.toSec();
+  std_msgs::String gps_str_msg;
+  gps_str_msg.data = std::to_string(time_gps->wn) + " " + std::to_string(time_gps->tow) + " " + std::to_string(time_gps->ns_residual);
 
+  time_gps_str_pub.publish(gps_str_msg);
   time_ref_pub.publish(time_msg);
+  time_diff_pub.publish(diff_msg);
+
+
 }
 
 void orientation_euler_callback(u16 sender_id, u8 len, u8 msg[], void *context)
@@ -464,6 +476,8 @@ int main(int argc, char **argv)
   status_flag_pub = n.advertise<std_msgs::UInt8>("status_flag", 100);
   status_stri_pub = n.advertise<std_msgs::String>("status_string", 100);
   time_ref_pub = n.advertise<sensor_msgs::TimeReference>("time_ref", 100);
+  time_diff_pub = n.advertise<std_msgs::Float64>("time_diff", 100);
+  time_gps_str_pub = n.advertise<std_msgs::String>("time_gps_str", 100);
 
   ros::NodeHandle n_private("~");
   n_private.param<std::string>("ip_address", tcp_ip_addr, "192.168.0.222");
