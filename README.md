@@ -1,24 +1,30 @@
-# Duro Inertial GPS Driver
+# Duro Inertial GPS `ROS`/`ROS2` Driver
 
 ## Contents
 
-- [Overview](#overview)
-- [Scope](#scope)
-- [Install](#install)
-- [Settings](#settings)
-- [Run](#run)
-- [Topics](#topics)
-- [Example rosbag](#example-rosbag)
-- [Further reading](#further-reading)
+- [Duro Inertial GPS `ROS`/`ROS2` Driver](#duro-inertial-gps-rosros2-driver)
+  - [Contents](#contents)
+  - [Overview](#overview)
+  - [Scope](#scope)
+  - [Install](#install)
+    - [1. step](#1-step)
+    - [2. step](#2-step)
+      - [`ROS` install](#ros-install)
+      - [`ROS2` install](#ros2-install)
+  - [Settings](#settings)
+  - [Run](#run)
+  - [Topics](#topics)
+  - [Example rosbag](#example-rosbag)
+  - [Further reading](#further-reading)
 ## Overview
 
 This is a C++ ROS driver for Swiftnaw Duro Inertial (Piksi Multi Inertial) GPS / GNSS Receivers. The code is based on offical Swiftnav libswiftnav C example and <del>Alex Hajnal's</del> Apollo UTM converter code. **Note** that orientation data is produced by Duro Inertial but not produced by Piksi Multi or Duro.
 
 ## Scope
 The current version supports *only* (not tested elsewhere):
-- Ubuntu 18.04
-- ROS Melodic
-- Catkin tools https://catkin-tools.readthedocs.io/
+- Ubuntu 18.04 (Ubuntu 22.04 ROS2)
+- ROS Melodic (ROS2 Humble)
+- Catkin tools https://catkin-tools.readthedocs.io/ (Colcon) 
 - Only ethernet version (no serial or USB support)
 
 ## Install
@@ -30,7 +36,6 @@ sudo apt-get install build-essential pkg-config cmake doxygen check
 cd ~; mkdir git; cd git     # eg create a git folder, the folder name can be different
 git clone https://github.com/swift-nav/libsbp.git
 cd libsbp
-git checkout fe7b78992fb87eef5bd6d12b2daf70f4ac90bc39
 cd c
 git submodule update --init --recursive
 mkdir build; cd build
@@ -41,11 +46,22 @@ sudo make install
 This will create some files in `/usr/local/include/libsbp/` and in `/usr/local/lib`.
 
 ### 2. step
+#### `ROS` install
 Clone the duro_gps_driver package into your Catkin workspace. 
 Navigate to the root of your Catkin workspace. Source your setup.bash file. Build the `duro_ros` package using Catkin:
-```
+```bash
+git clone https://github.com/szenergy/duro_gps_driver
 catkin build duro_ros
 source devel/setup.bash
+```
+
+#### `ROS2` install
+Navigate to the root of your Colcon workspace. Source your setup.bash file. Build the `duro_ros` package using Colcon:
+``` bash
+git clone https://github.com/szenergy/duro_gps_driver
+git checkout ros2-humble
+colcon build --packages-select duro_ros
+source install/local_setup.bash && source install/setup.bash
 ```
 
 ## Settings 
