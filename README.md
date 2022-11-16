@@ -78,10 +78,12 @@ Make sure that `roscore` is running.
 The `duro-gps` driver can be run using the `rosrun` command. It is necessary to provide your device's IP address and port number. 
 E.g:
 ```
+ros2 run duro_ros duro_node --ros-args -p ip_address:="192.168.1.10" -p port:=55555
 rosrun duro_ros duronode _ip_address:=192.168.1.10 _port:=55555
 ```
-Alternatively you can use a [launch](launch/duro_example.launch) file. E.g:
+Alternatively you can use a [launch](launch/duro_example.launch.py) file. E.g:
 ```
+ros2 launch duro_ros duro_example.launch.py
 roslaunch duro_ros duro_example.launch
 ```
 
