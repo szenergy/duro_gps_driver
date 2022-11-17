@@ -19,7 +19,7 @@ def generate_launch_description():
         package="duro_ros",
         executable="duro_node",
         parameters=[
-            {"ip_address": "192.168.0.222"},
+            {"ip_address": "192.168.1.10"},
             {"port": 55555},
             {"gps_receiver_frame_id": "duro"},
             {"imu_frame_id": "duro"},

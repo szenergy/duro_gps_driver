@@ -73,16 +73,16 @@ class DuroDriver : public rclcpp::Node
         this->declare_parameter("orientation_source", "gps");
         this->declare_parameter("z_coord_ref_switch", "zero");
         this->declare_parameter("z_coord_exact_height", 0.1);
-        std::string ip_address = this->get_parameter("ip_address").get_parameter_value().get<std::string>();
-        int port = this->get_parameter("port").get_parameter_value().get<int>();
+        tcp_ip_addr = this->get_parameter("ip_address").get_parameter_value().get<std::string>();
+        tcp_ip_port = this->get_parameter("port").get_parameter_value().get<int>();
         std::string gps_receiver_frame_id = this->get_parameter("gps_receiver_frame_id").get_parameter_value().get<std::string>();
         std::string imu_frame_id = this->get_parameter("imu_frame_id").get_parameter_value().get<std::string>();
         std::string utm_frame_id = this->get_parameter("utm_frame_id").get_parameter_value().get<std::string>();
         std::string orientation_source = this->get_parameter("orientation_source").get_parameter_value().get<std::string>();
         std::string z_coord_ref_switch = this->get_parameter("z_coord_ref_switch").get_parameter_value().get<std::string>();
         float z_coord_exact_height = this->get_parameter("z_coord_exact_height").get_parameter_value().get<float>();
-        RCLCPP_INFO_STREAM(this->get_logger(), "ip_address: " << ip_address);
-        RCLCPP_INFO_STREAM(this->get_logger(), "port: " << port);
+        RCLCPP_INFO_STREAM(this->get_logger(), "ip_address: " << tcp_ip_addr);
+        RCLCPP_INFO_STREAM(this->get_logger(), "port: " << tcp_ip_port);
         RCLCPP_INFO_STREAM(this->get_logger(), "gps_receiver_frame_id: " << gps_receiver_frame_id);
         RCLCPP_INFO_STREAM(this->get_logger(), "imu_frame_id: " << imu_frame_id);
         RCLCPP_INFO_STREAM(this->get_logger(), "utm_frame_id: " << utm_frame_id);
@@ -94,7 +94,7 @@ class DuroDriver : public rclcpp::Node
         socket_desc = socket(AF_INET, SOCK_STREAM, 0);
         if (socket_desc == -1)
         {
-            RCLCPP_INFO(this->get_logger(), "Could not create socket");
+            RCLCPP_ERROR(this->get_logger(), "Could not create socket");
         }
 
         memset(&server, '0', sizeof(server));
@@ -104,7 +104,7 @@ class DuroDriver : public rclcpp::Node
 
         if (connect(socket_desc, (struct sockaddr *)&server, sizeof(server)) < 0)
         {
-            RCLCPP_INFO(this->get_logger(), "Connection error");
+            RCLCPP_ERROR(this->get_logger(), "Connection error");
         }
     }
 
@@ -140,9 +140,9 @@ class DuroDriver : public rclcpp::Node
 void mag_callback(u16 sender_id, u8 len, u8 msg[], void *context)
 {
   msg_mag_raw_t *magmsg = (msg_mag_raw_t *)msg;
+  sensor_msgs::msg::MagneticField mag_ros_msg;
   /*
-  sensor_msgs::MagneticField mag_ros_msg;
-  mag_ros_msg.header.stamp = ros::Time::now();
+  mag_ros_msg.header.stamp = //this->get_clock()->now();
   mag_ros_msg.header.frame_id = imu_frame_id;
 
   mag_ros_msg.magnetic_field.x = magmsg->mag_x * 1e-6; // Magnetic field in the body frame X axis [microteslas]
@@ -158,8 +158,8 @@ int main(int argc, char * argv[])
     auto duro_node = std::make_shared<DuroDriver>();
     duro_node->setup_socket();
     sbp_state_t s;
-    //sbp_state_init(&s);
-    //sbp_register_callback(&s, SBP_MSG_MAG_RAW, &mag_callback, NULL, &mag_callback_node);
+    sbp_state_init(&s);
+    sbp_register_callback(&s, SBP_MSG_MAG_RAW, &mag_callback, NULL, &mag_callback_node);
     //rclcpp::spin(std::make_shared<DuroDriver>());
     while (rclcpp::ok())
     {

@@ -18,10 +18,19 @@ find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
 
+
 link_directories("/usr/local/lib/")
+include_directories("/usr/local/include/")
 
 add_executable(duro_node src/duro.cpp)
+target_link_libraries(duro_node sbp)
 ament_target_dependencies(duro_node rclcpp std_msgs visualization_msgs)
+
+add_executable(cpp_example src/cpp_example.cc)
+target_link_libraries(cpp_example sbp)
+ament_target_dependencies(cpp_example rclcpp std_msgs visualization_msgs)
+
+
 
 
 # install(
@@ -39,7 +48,7 @@ ament_target_dependencies(duro_node rclcpp std_msgs visualization_msgs)
 # )
 
 install(
-  TARGETS duro_node
+  TARGETS duro_node cpp_example
   DESTINATION lib/${PROJECT_NAME}
 )
 
