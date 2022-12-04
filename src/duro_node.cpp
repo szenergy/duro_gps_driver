@@ -472,7 +472,7 @@ int main(int argc, char * argv[])
   status_string_pub = node->create_publisher<std_msgs::msg::String>("status_string", 100);
   time_ref_pub = node->create_publisher<sensor_msgs::msg::TimeReference>("time_ref", 100);
 
-  node->declare_parameter<std::string>("ip_address", "192.168.1.222");
+  node->declare_parameter<std::string>("ip_address", "192.168.0.222");
   node->declare_parameter<int>("port", 55555);
   node->declare_parameter<std::string>("gps_receiver_frame", "duro");
   node->declare_parameter<std::string>("imu_frame", "duro");
@@ -505,12 +505,10 @@ int main(int argc, char * argv[])
   sbp_register_callback(&sbp_state, SBP_MSG_GPS_TIME, time_callback, NULL, &time_callback_node);
   RCLCPP_INFO(node->get_logger(), "Success on %s:%d", tcp_ip_addr.c_str(), tcp_ip_port);
   
-  rclcpp::Rate loop_rate(10);
   while (rclcpp::ok())
   {
-    RCLCPP_INFO(node->get_logger(), "Running...");
     sbp_process(&sbp_state, &socket_read);
-    loop_rate.sleep();
+    rclcpp::spin_some(node);
   }
   close_socket();
   rclcpp::shutdown();
