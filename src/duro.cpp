@@ -299,16 +299,20 @@ void time_callback(u16 sender_id, u8 len, u8 msg[], void *context)
   sensor_msgs::TimeReference time_msg;
 
   time_msg.header.frame_id = "ros_time";
+  //time_msg.header.stamp.nsec = ros::Time::now().nsec / 1000;
+  //time_msg.header.stamp.sec = ros::Time::now().sec;
   time_msg.header.stamp = ros::Time::now();
 
   //rounded msec + residual nsec -> truncated sec + remainder nsec
-  long long int ttemp = (time_gps->tow * 1000000 + time_gps->ns_residual) % 1000000000;
+  long long int towtemp = time_gps->tow % 1000;
+  long long int ttemp = (towtemp * 1000000 + time_gps->ns_residual) % 1000000000;
   time_msg.time_ref.nsec = ttemp;
   time_msg.time_ref.sec = time_gps->tow / 1000 + time_gps->wn * 604800 + 315964782;
   time_msg.source = "gps_duro";
   std_msgs::Float64 diff_msg;
   ros::Duration diff = time_msg.time_ref - time_msg.header.stamp;
   diff_msg.data = diff.toSec();
+  //diff_msg.data = time_gps->tow;
   std_msgs::String gps_str_msg;
   gps_str_msg.data = std::to_string(time_gps->wn) + " " + std::to_string(time_gps->tow) + " " + std::to_string(time_gps->ns_residual);
 
