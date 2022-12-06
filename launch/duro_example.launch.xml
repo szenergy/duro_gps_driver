@@ -1,11 +1,10 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <launch>
-    <node pkg="duro_ros" type="duronode" name="duro_driver" output="screen">
+    <node pkg="duro_gps_driver" exec="duro_node" name="duro_gps_driver" output="screen">
         <param name="ip_address" value="192.168.1.222"/>
         <param name="port" value="55555"/>
-        <param name="gps_receiver_frame_id" value="duro"/>
-        <param name="imu_frame_id" value="duro"/>
-        <param name="utm_frame_id" value="map"/>
+        <param name="gps_receiver_frame" value="duro"/>
+        <param name="imu_frame" value="duro"/>
+        <param name="utm_frame" value="map"/>
 
         <!-- orientation_source can be gps / odom  
         gps: orientation provided from the default gps modules 
