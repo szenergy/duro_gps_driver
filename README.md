@@ -1,8 +1,8 @@
-# Duro Inertial GPS ROS/ROS2 Driver
+# Duro Inertial GPS `ROS`/`ROS2` Driver
 
 ## Contents
 
-- [Duro Inertial GPS ROS/ROS2 Driver](#duro-inertial-gps-rosros2-driver)
+- [Duro Inertial GPS `ROS`/`ROS2` Driver](#duro-inertial-gps-rosros2-driver)
   - [Contents](#contents)
   - [Overview](#overview)
   - [Scope](#scope)
@@ -22,9 +22,9 @@ This is a C++ ROS driver for Swiftnaw Duro Inertial (Piksi Multi Inertial) GPS /
 
 ## Scope
 The current version supports *only* (not tested elsewhere):
-- Ubuntu 18.04
-- ROS Melodic
-- Catkin tools https://catkin-tools.readthedocs.io/
+- Ubuntu 18.04 (Ubuntu 22.04 ROS2)
+- ROS Melodic (ROS2 Humble)
+- Catkin tools https://catkin-tools.readthedocs.io/ (Colcon) 
 - Only ethernet version (no serial or USB support)
 
 ## Install
@@ -36,7 +36,7 @@ sudo apt-get install build-essential pkg-config cmake doxygen check
 cd ~; mkdir git; cd git     # eg create a git folder, the folder name can be different
 git clone https://github.com/swift-nav/libsbp.git
 cd libsbp
-git checkout fe7b78992fb87eef5bd6d12b2daf70f4ac90bc39
+git checkout fe7b78992fb87eef5bd6d12b2daf70f4ac90bc39 # only for 18.04!
 cd c
 git submodule update --init --recursive
 mkdir build; cd build
@@ -59,9 +59,11 @@ source devel/setup.bash
 #### `ROS2` install
 Navigate to the root of your Colcon workspace. Source your setup.bash file. Build the `duro_ros` package using Colcon:
 ``` bash
+cd ~/ros2_ws/src
 git clone https://github.com/szenergy/duro_gps_driver
 git checkout ros2-humble
-colcon build --packages-select duro_ros
+cd ..
+colcon build --packages-select duro_gps_driver
 source install/local_setup.bash && source install/setup.bash
 ```
 
@@ -77,10 +79,13 @@ Make sure that `roscore` is running.
 The `duro-gps` driver can be run using the `rosrun` command. It is necessary to provide your device's IP address and port number. 
 E.g:
 ```
+ros2 run duro_ros duro_node --ros-args -p ip_address:="192.168.1.10" -p port:=55555
 rosrun duro_ros duronode _ip_address:=192.168.1.10 _port:=55555
 ```
 Alternatively you can use a [launch](launch/duro_example.launch) file. E.g:
 ```
+ros2 launch duro_gps_driver duro_example.launch.py
+ros2 launch duro_gps_driver duro_example.launch.xml
 roslaunch duro_ros duro_example.launch
 ```
 
