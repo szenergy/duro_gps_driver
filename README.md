@@ -58,10 +58,10 @@ source devel/setup.bash
 #### `ROS2` install
 Navigate to the root of your Colcon workspace. Source your setup.bash file. Build the `duro_ros` package using Colcon:
 ``` bash
-mkdir duro_ros; cd duro_ros
-git clone https://github.com/szenergy/duro_gps_driver .
+cd ~/ros2_ws/src
+git clone https://github.com/szenergy/duro_gps_driver
 git checkout ros2-humble
-cd ../..
+cd ..
 colcon build --packages-select duro_gps_driver
 source install/local_setup.bash && source install/setup.bash
 ```
