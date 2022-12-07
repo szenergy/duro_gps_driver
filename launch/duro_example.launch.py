@@ -16,7 +16,7 @@ euler_based_orientation:
 def generate_launch_description():
     ld = LaunchDescription()
     duro_node = Node(
-        package="duro_ros",
+        package="duro_gps_driver",
         executable="duro_node",
         parameters=[
             {"ip_address": "192.168.1.10"},

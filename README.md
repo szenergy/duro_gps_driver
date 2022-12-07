@@ -62,7 +62,7 @@ mkdir duro_ros; cd duro_ros
 git clone https://github.com/szenergy/duro_gps_driver .
 git checkout ros2-humble
 cd ../..
-colcon build --packages-select duro_ros
+colcon build --packages-select duro_gps_driver
 source install/local_setup.bash && source install/setup.bash
 ```
 
@@ -83,7 +83,8 @@ rosrun duro_ros duronode _ip_address:=192.168.1.10 _port:=55555
 ```
 Alternatively you can use a [launch](launch/duro_example.launch.py) file. E.g:
 ```
-ros2 launch duro_ros duro_example.launch.py
+ros2 launch duro_gps_driver duro_example.launch.py
+ros2 launch duro_gps_driver duro_example.launch.xml
 roslaunch duro_ros duro_example.launch
 ```
 

@@ -6,3 +6,5 @@ build/*
 devel/*
 logs/*
 .catkin_tools/*
+install/*
+log/*
