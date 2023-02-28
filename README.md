@@ -63,7 +63,7 @@ git clone https://github.com/szenergy/duro_gps_driver
 git checkout ros2-humble
 cd ..
 colcon build --packages-select duro_gps_driver
-source install/local_setup.bash && source install/setup.bash
+source ~/ros2_ws/install/local_setup.bash && source ~/ros2_ws/install/setup.bash
 ```
 
 ## Settings 
