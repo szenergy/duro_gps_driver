@@ -22,7 +22,7 @@
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include "geometry_msgs/msg/transform_stamped.hpp"
 #include "tf2/LinearMath/Quaternion.h"
-#include "tf2_ros/static_transform_broadcaster.h"
+#include "tf2_ros/transform_broadcaster.h"
 
 
 
@@ -65,7 +65,7 @@ std_msgs::msg::UInt8 status_flag_msg;
 std_msgs::msg::String status_string_msg;
 sensor_msgs::msg::TimeReference time_ref_msg;
 geometry_msgs::msg::TransformStamped t;
-std::shared_ptr<tf2_ros::StaticTransformBroadcaster> tf_static_broadcaster_;
+std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
 
 // ROS node parameters
 std::string tcp_ip_addr;
@@ -209,7 +209,7 @@ void pos_ll_callback(u16 sender_id, u8 len, u8 msg[], void *context)
 
     t.transform.translation.x = x;
     t.transform.translation.y = y;
-    t.transform.translation.z = latlonmsg->height; /// TODO
+    t.transform.translation.z = latlonmsg->height; 
 
     fake_ori.addXY(x, y);
     // fake_ori.printAll();
@@ -248,6 +248,7 @@ void pos_ll_callback(u16 sender_id, u8 len, u8 msg[], void *context)
     fake_pose_msg.pose.orientation.y = fake_quat.getY();
     fake_pose_msg.pose.orientation.z = fake_quat.getZ();
     fake_pub->publish(fake_pose_msg);
+    tf_broadcaster_->sendTransform(t);
 
     if (orientation_source.compare("gps")==0)
     {
@@ -329,7 +330,7 @@ void orientation_callback(u16 sender_id, u8 len, u8 msg[], void *context)
     t.transform.rotation.z = pose_msg.pose.orientation.z;
     t.transform.rotation.w = pose_msg.pose.orientation.w;
 
-    tf_static_broadcaster_->sendTransform(t);
+    tf_broadcaster_->sendTransform(t);
     
   }
 }
@@ -504,7 +505,7 @@ int main(int argc, char * argv[])
   status_flag_pub = node->create_publisher<std_msgs::msg::UInt8>("status_flag", 100);
   status_string_pub = node->create_publisher<std_msgs::msg::String>("status_string", 100);
   time_ref_pub = node->create_publisher<sensor_msgs::msg::TimeReference>("time_ref", 100);
-  tf_static_broadcaster_ = std::make_shared<tf2_ros::StaticTransformBroadcaster>(node);
+  tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(node);
 
 
   node->declare_parameter<std::string>("ip_address", "192.168.0.222");
@@ -527,6 +528,7 @@ int main(int argc, char * argv[])
   node->get_parameter("utm_frame", utm_frame);
   node->get_parameter("orientation_source", orientation_source);
   node->get_parameter("z_coord_ref_switch", z_coord_ref_switch);
+  node->get_parameter("z_coord_exact_height", z_coord_exact_height);
   node->get_parameter("euler_based_orientation", euler_based_orientation);
   node->get_parameter("tf_frame_id", tf_frame_id); 
   node->get_parameter("tf_child_frame_id", tf_child_frame_id); 
