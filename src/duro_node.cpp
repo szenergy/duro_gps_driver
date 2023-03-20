@@ -324,7 +324,6 @@ void orientation_callback(u16 sender_id, u8 len, u8 msg[], void *context)
     pose_msg.pose.orientation.y = tf_aligned.x() * -1; // left-handerd / right handed orientation
     pose_msg.pose.orientation.z = tf_aligned.z();      // left-handerd / right handed orientation
 
-    tf2::Quaternion q;
     t.transform.rotation.x = pose_msg.pose.orientation.x;
     t.transform.rotation.y = pose_msg.pose.orientation.y;
     t.transform.rotation.z = pose_msg.pose.orientation.z;
@@ -369,6 +368,12 @@ void orientation_euler_callback(u16 sender_id, u8 len, u8 msg[], void *context)
     pose_msg.pose.orientation.x = fromeuler.getX();
     pose_msg.pose.orientation.y = fromeuler.getY();
     pose_msg.pose.orientation.z = fromeuler.getZ();
+
+    t.transform.rotation.x = pose_msg.pose.orientation.x;
+    t.transform.rotation.y = pose_msg.pose.orientation.y;
+    t.transform.rotation.z = pose_msg.pose.orientation.z;
+    t.transform.rotation.w = pose_msg.pose.orientation.w;
+
   }
 }
 
