@@ -55,7 +55,7 @@ catkin build duro_ros
 source devel/setup.bash
 ```
 
-#### `ROS2` install
+#### `ROS 2` install
 Navigate to the root of your Colcon workspace. Source your setup.bash file. Build the `duro_ros` package using Colcon:
 ``` bash
 cd ~/ros2_ws/src
