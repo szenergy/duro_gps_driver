@@ -9,6 +9,9 @@ z_coord_ref_switch can be zero / exact / zero_based / orig
 - exact: the Z coorindinate is always z_coord_exact_height param (must be set in this launch)
 - zero_based: Z coordinate starts from 0 and relative
 - orig: the original Z provided by Duro / Piksi
+zero_based_pose:
+- false (default): UTM coordinates as pose
+- true: 0,0 starting point as pose (similar to an odometry)
 euler_based_orientation:
 - true: euler based, not enabled by default, please enable SPB message SBP_MSG_ORIENT_EULER 0x0221 decimal 545
 - false: quaternion based, not enabled by default, please enable SPB message SBP_MSG_ORIENT_QUAT 0x0220 decimal 544
@@ -27,6 +30,7 @@ def generate_launch_description():
             {"orientation_source": "gps"},
             {"z_coord_ref_switch": "zero"},
             {"z_coord_exact_height": 0.2},
+            {"zero_based_pose": False},
             {"euler_based_orientation": True}           
   
         ]

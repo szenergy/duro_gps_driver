@@ -77,6 +77,7 @@ std::string orientation_source;
 std::string z_coord_ref_switch;
 std::string tf_frame_id, tf_child_frame_id;
 bool euler_based_orientation;
+bool zero_based_pose;
 float z_coord_exact_height;
 
 // SBP variables
@@ -97,7 +98,9 @@ double linear_acc_conf = -1.0;  //4096; // default acc_range 8g
 double angular_vel_conf = -1.0; //262.4; // default gyro_range 125
 bool first_run_imu_conf = true;
 bool first_run_z_coord = true;
+bool first_run_pose = true;
 double z_coord_start = 0.0;
+geometry_msgs::msg::PoseStamped start_pose;
 
 void setup_socket()
 {
@@ -249,6 +252,17 @@ void pos_ll_callback(u16 sender_id, u8 len, u8 msg[], void *context)
     fake_pose_msg.pose.orientation.z = fake_quat.getZ();
     fake_pub->publish(fake_pose_msg);
     tf_broadcaster_->sendTransform(t);
+
+    if (first_run_pose){
+      start_pose.pose = pose_msg.pose;
+      first_run_pose = false;
+    }
+    if(zero_based_pose){
+      pose_msg.pose.position.x = pose_msg.pose.position.x - start_pose.pose.position.x;
+      pose_msg.pose.position.y = pose_msg.pose.position.y - start_pose.pose.position.y;
+      // TODO: orientation
+
+    }
 
     if (orientation_source.compare("gps")==0)
     {
@@ -524,6 +538,7 @@ int main(int argc, char * argv[])
   node->declare_parameter<float>("z_coord_exact_height", 1.9);
   node->declare_parameter<std::string>("tf_frame_id", "map");
   node->declare_parameter<std::string>("tf_child_frame_id", "gps");
+  node->declare_parameter<bool>("zero_based_pose", false);
   
 
   node->get_parameter("ip_address", tcp_ip_addr);
@@ -537,6 +552,7 @@ int main(int argc, char * argv[])
   node->get_parameter("euler_based_orientation", euler_based_orientation);
   node->get_parameter("tf_frame_id", tf_frame_id); 
   node->get_parameter("tf_child_frame_id", tf_child_frame_id); 
+  node->get_parameter("zero_based_pose", zero_based_pose); 
   
 
   RCLCPP_INFO(node->get_logger(), "Starting GPS Duro...");
