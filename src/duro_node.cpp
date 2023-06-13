@@ -98,7 +98,8 @@ double linear_acc_conf = -1.0;  //4096; // default acc_range 8g
 double angular_vel_conf = -1.0; //262.4; // default gyro_range 125
 bool first_run_imu_conf = true;
 bool first_run_z_coord = true;
-bool first_run_pose = true;
+bool first_run_position = true;
+bool first_run_orientation = true;
 double z_coord_start = 0.0;
 geometry_msgs::msg::PoseStamped start_pose;
 
@@ -253,15 +254,27 @@ void pos_ll_callback(u16 sender_id, u8 len, u8 msg[], void *context)
     fake_pub->publish(fake_pose_msg);
     tf_broadcaster_->sendTransform(t);
 
-    if (first_run_pose){
-      start_pose.pose = pose_msg.pose;
-      first_run_pose = false;
+    if (first_run_position)
+    {
+      start_pose.pose.position = pose_msg.pose.position;
+      first_run_position = false;
     }
-    if(zero_based_pose){
+    if(zero_based_pose)
+    {
       pose_msg.pose.position.x = pose_msg.pose.position.x - start_pose.pose.position.x;
       pose_msg.pose.position.y = pose_msg.pose.position.y - start_pose.pose.position.y;
-      // TODO: orientation
 
+      tf2::Quaternion current_orientation(pose_msg.pose.orientation.x, pose_msg.pose.orientation.y, pose_msg.pose.orientation.z, pose_msg.pose.orientation.w);
+      tf2::Quaternion start_orientation_offset(-start_pose.pose.orientation.x, -start_pose.pose.orientation.y, -start_pose.pose.orientation.z, start_pose.pose.orientation.w);
+      
+      current_orientation = start_orientation_offset * current_orientation;
+
+      current_orientation.normalize();
+
+      pose_msg.pose.orientation.w = current_orientation.getW();
+      pose_msg.pose.orientation.x = current_orientation.getX();
+      pose_msg.pose.orientation.y = current_orientation.getY();
+      pose_msg.pose.orientation.z = current_orientation.getZ();
     }
 
     if (orientation_source.compare("gps")==0)
@@ -382,6 +395,11 @@ void orientation_euler_callback(u16 sender_id, u8 len, u8 msg[], void *context)
     pose_msg.pose.orientation.x = fromeuler.getX();
     pose_msg.pose.orientation.y = fromeuler.getY();
     pose_msg.pose.orientation.z = fromeuler.getZ();
+
+    if (first_run_orientation){
+      start_pose.pose.orientation = pose_msg.pose.orientation;
+      first_run_orientation = false;
+    }
 
     t.transform.rotation.x = pose_msg.pose.orientation.x;
     t.transform.rotation.y = pose_msg.pose.orientation.y;
