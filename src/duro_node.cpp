@@ -211,10 +211,6 @@ void pos_ll_callback(u16 sender_id, u8 len, u8 msg[], void *context)
     t.header.frame_id = tf_frame_id;
     t.child_frame_id = tf_child_frame_id;
 
-    t.transform.translation.x = x;
-    t.transform.translation.y = y;
-    t.transform.translation.z = latlonmsg->height; 
-
     fake_ori.addXY(x, y);
     // fake_ori.printAll();
 
@@ -242,7 +238,6 @@ void pos_ll_callback(u16 sender_id, u8 len, u8 msg[], void *context)
     {
       pose_msg.pose.position.z = latlonmsg->height;
     }
-    t.transform.translation.z = pose_msg.pose.position.z; 
     fake_pose_msg.header = pose_msg.header;
     fake_pose_msg.pose.position = pose_msg.pose.position;
     tf2::Quaternion fake_quat;
@@ -252,7 +247,6 @@ void pos_ll_callback(u16 sender_id, u8 len, u8 msg[], void *context)
     fake_pose_msg.pose.orientation.y = fake_quat.getY();
     fake_pose_msg.pose.orientation.z = fake_quat.getZ();
     fake_pub->publish(fake_pose_msg);
-    tf_broadcaster_->sendTransform(t);
 
     if (first_run_position)
     {
@@ -276,6 +270,14 @@ void pos_ll_callback(u16 sender_id, u8 len, u8 msg[], void *context)
       pose_msg.pose.orientation.y = current_orientation.getY();
       pose_msg.pose.orientation.z = current_orientation.getZ();
     }
+    t.transform.translation.x = pose_msg.pose.position.x; 
+    t.transform.translation.y = pose_msg.pose.position.y; 
+    t.transform.translation.z = pose_msg.pose.position.z; 
+    t.transform.rotation.x = pose_msg.pose.orientation.x;
+    t.transform.rotation.y = pose_msg.pose.orientation.y;
+    t.transform.rotation.z = pose_msg.pose.orientation.z;
+    t.transform.rotation.w = pose_msg.pose.orientation.w;
+    tf_broadcaster_->sendTransform(t);
 
     if (orientation_source.compare("gps")==0)
     {
@@ -351,11 +353,6 @@ void orientation_callback(u16 sender_id, u8 len, u8 msg[], void *context)
     pose_msg.pose.orientation.y = tf_aligned.x() * -1; // left-handerd / right handed orientation
     pose_msg.pose.orientation.z = tf_aligned.z();      // left-handerd / right handed orientation
 
-    t.transform.rotation.x = pose_msg.pose.orientation.x;
-    t.transform.rotation.y = pose_msg.pose.orientation.y;
-    t.transform.rotation.z = pose_msg.pose.orientation.z;
-    t.transform.rotation.w = pose_msg.pose.orientation.w;
-
     tf_broadcaster_->sendTransform(t);
     
   }
@@ -400,11 +397,6 @@ void orientation_euler_callback(u16 sender_id, u8 len, u8 msg[], void *context)
       start_pose.pose.orientation = pose_msg.pose.orientation;
       first_run_orientation = false;
     }
-
-    t.transform.rotation.x = pose_msg.pose.orientation.x;
-    t.transform.rotation.y = pose_msg.pose.orientation.y;
-    t.transform.rotation.z = pose_msg.pose.orientation.z;
-    t.transform.rotation.w = pose_msg.pose.orientation.w;
 
   }
 }
