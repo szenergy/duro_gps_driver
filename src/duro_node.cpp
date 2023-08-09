@@ -23,6 +23,7 @@
 #include "geometry_msgs/msg/transform_stamped.hpp"
 #include "tf2/LinearMath/Quaternion.h"
 #include "tf2_ros/transform_broadcaster.h"
+#include "tf2_ros/static_transform_broadcaster.h"
 
 
 
@@ -64,8 +65,9 @@ geometry_msgs::msg::PoseStamped fake_pose_msg;
 std_msgs::msg::UInt8 status_flag_msg;
 std_msgs::msg::String status_string_msg;
 sensor_msgs::msg::TimeReference time_ref_msg;
-geometry_msgs::msg::TransformStamped t;
+geometry_msgs::msg::TransformStamped t, tf_static;
 std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
+std::shared_ptr<tf2_ros::StaticTransformBroadcaster> tf_static_broadcaster_;
 
 // ROS node parameters
 std::string tcp_ip_addr;
@@ -78,6 +80,7 @@ std::string z_coord_ref_switch;
 std::string tf_frame_id, tf_child_frame_id;
 bool euler_based_orientation;
 bool zero_based_pose;
+float x_coord_offset, y_coord_offset;
 float z_coord_exact_height;
 
 // SBP variables
@@ -99,6 +102,7 @@ double angular_vel_conf = -1.0; //262.4; // default gyro_range 125
 bool first_run_imu_conf = true;
 bool first_run_z_coord = true;
 bool first_run_position = true;
+bool first_run_tf_static = true;
 bool first_run_orientation = true;
 double z_coord_start = 0.0;
 geometry_msgs::msg::PoseStamped start_pose;
@@ -200,7 +204,6 @@ void pos_ll_callback(u16 sender_id, u8 len, u8 msg[], void *context)
     odom_msg.pose.pose.position.x = x;
     odom_msg.pose.pose.position.y = y;
     odom_msg.pose.pose.position.z = latlonmsg->height;
-    odom_pub->publish(odom_msg);
 
     pose_msg.header.stamp = node->now();
     pose_msg.header.frame_id = utm_frame;
@@ -238,6 +241,8 @@ void pos_ll_callback(u16 sender_id, u8 len, u8 msg[], void *context)
     {
       pose_msg.pose.position.z = latlonmsg->height;
     }
+    pose_msg.pose.position.x += x_coord_offset;
+    pose_msg.pose.position.y += y_coord_offset;
     fake_pose_msg.header = pose_msg.header;
     fake_pose_msg.pose.position = pose_msg.pose.position;
     tf2::Quaternion fake_quat;
@@ -252,6 +257,22 @@ void pos_ll_callback(u16 sender_id, u8 len, u8 msg[], void *context)
     {
       start_pose.pose.position = pose_msg.pose.position;
       first_run_position = false;
+    }
+    if(first_run_tf_static)
+    {
+      if (x_coord_offset < -0.1 || x_coord_offset > 0.1)
+      {
+        tf_static.header.frame_id = "map_utm_zone0";
+        tf_static.child_frame_id = "map";
+        tf_static.transform.translation.x = x_coord_offset; 
+        tf_static.transform.translation.y = y_coord_offset; 
+        tf_static.transform.translation.z = 0.0; 
+        // tf_static.transform.rotation.x = 0.0;
+        // tf_static.transform.rotation.y = 0.0;
+        // tf_static.transform.rotation.z = 0.0;
+        // tf_static.transform.rotation.w = 1.0;
+        tf_static_broadcaster_->sendTransform(tf_static);
+      }
     }
     if(zero_based_pose)
     {
@@ -282,6 +303,11 @@ void pos_ll_callback(u16 sender_id, u8 len, u8 msg[], void *context)
     if (orientation_source.compare("gps")==0)
     {
       pose_pub->publish(pose_msg);
+      odom_msg.pose.pose.orientation.w = pose_msg.pose.orientation.w;
+      odom_msg.pose.pose.orientation.x = pose_msg.pose.orientation.x;
+      odom_msg.pose.pose.orientation.y = pose_msg.pose.orientation.y;
+      odom_msg.pose.pose.orientation.z = pose_msg.pose.orientation.z;
+      odom_pub->publish(odom_msg);
     }
     else if (orientation_source.compare("odom")==0)
     {
@@ -535,7 +561,7 @@ int main(int argc, char * argv[])
   status_string_pub = node->create_publisher<std_msgs::msg::String>("status_string", 100);
   time_ref_pub = node->create_publisher<sensor_msgs::msg::TimeReference>("time_ref", 100);
   tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(node);
-
+  tf_static_broadcaster_ = std::make_shared<tf2_ros::StaticTransformBroadcaster>(node);
 
   node->declare_parameter<std::string>("ip_address", "192.168.0.222");
   node->declare_parameter<int>("port", 55555);
@@ -545,6 +571,8 @@ int main(int argc, char * argv[])
   node->declare_parameter<std::string>("orientation_source", "gps");
   node->declare_parameter<std::string>("z_coord_ref_switch", "orig");
   node->declare_parameter<bool>("euler_based_orientation", true);
+  node->declare_parameter<float>("x_coord_offset", 0.0);
+  node->declare_parameter<float>("y_coord_offset", 0.0);
   node->declare_parameter<float>("z_coord_exact_height", 1.9);
   node->declare_parameter<std::string>("tf_frame_id", "map");
   node->declare_parameter<std::string>("tf_child_frame_id", "gps");
@@ -557,6 +585,8 @@ int main(int argc, char * argv[])
   node->get_parameter("imu_frame", imu_frame);
   node->get_parameter("utm_frame", utm_frame);
   node->get_parameter("orientation_source", orientation_source);
+  node->get_parameter("x_coord_offset", x_coord_offset);
+  node->get_parameter("y_coord_offset", y_coord_offset);
   node->get_parameter("z_coord_ref_switch", z_coord_ref_switch);
   node->get_parameter("z_coord_exact_height", z_coord_exact_height);
   node->get_parameter("euler_based_orientation", euler_based_orientation);
@@ -570,6 +600,9 @@ int main(int argc, char * argv[])
 
   if (z_coord_ref_switch.compare("exact") == 0){
     RCLCPP_INFO_STREAM(node->get_logger(), "Exact height (z): " << z_coord_exact_height);
+  }
+  if (x_coord_offset < -0.1 || x_coord_offset > 0.1){
+    RCLCPP_INFO_STREAM(node->get_logger(), "x and y coordinate offset: " << x_coord_offset << "," << y_coord_offset);
   }
   RCLCPP_INFO_STREAM(node->get_logger(), "TF child frame id: " << tf_child_frame_id);
 
