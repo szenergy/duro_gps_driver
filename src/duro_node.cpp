@@ -20,6 +20,7 @@
 #include "sensor_msgs/msg/time_reference.hpp"
 #include "geometry_msgs/msg/vector3.hpp"
 #include "geometry_msgs/msg/pose_stamped.hpp"
+#include "geometry_msgs/msg/pose_with_covariance_stamped.hpp"
 #include "geometry_msgs/msg/transform_stamped.hpp"
 #include "tf2/LinearMath/Quaternion.h"
 #include "tf2_ros/transform_broadcaster.h"
@@ -48,6 +49,7 @@ rclcpp::Publisher<sensor_msgs::msg::MagneticField>::SharedPtr mag_pub;
 rclcpp::Publisher<geometry_msgs::msg::Vector3>::SharedPtr euler_pub;
 rclcpp::Publisher<geometry_msgs::msg::Vector3>::SharedPtr euler_pub_fake;
 rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr pose_pub;
+rclcpp::Publisher<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr pose_with_cov_pub;
 rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr fake_pub;
 rclcpp::Publisher<std_msgs::msg::UInt8>::SharedPtr status_flag_pub;
 rclcpp::Publisher<std_msgs::msg::String>::SharedPtr status_string_pub;
@@ -61,6 +63,7 @@ sensor_msgs::msg::MagneticField mag_msg;
 geometry_msgs::msg::Vector3 euler_vector_msg;
 geometry_msgs::msg::Vector3 euler_fake_vector_msg;
 geometry_msgs::msg::PoseStamped pose_msg;
+geometry_msgs::msg::PoseWithCovarianceStamped pose_cov_msg;
 geometry_msgs::msg::PoseStamped fake_pose_msg;
 std_msgs::msg::UInt8 status_flag_msg;
 std_msgs::msg::String status_string_msg;
@@ -91,6 +94,7 @@ static sbp_msg_callbacks_node_t imu_callback_node;
 static sbp_msg_callbacks_node_t imu_aux_callback_node;
 static sbp_msg_callbacks_node_t mag_callback_node;
 static sbp_msg_callbacks_node_t time_callback_node;
+static sbp_msg_callbacks_node_t vel_ned_cov_callback_node;
 sbp_state_t sbp_state;
 
 // Parameters
@@ -201,8 +205,8 @@ void pos_ll_callback(u16 sender_id, u8 len, u8 msg[], void *context)
     odom_msg.header.stamp = node->now();
     odom_msg.header.frame_id = utm_frame;
     odom_msg.child_frame_id = gps_receiver_frame;
-    odom_msg.pose.pose.position.x = x;
-    odom_msg.pose.pose.position.y = y;
+    // odom_msg.pose.pose.position.x = x;
+    // odom_msg.pose.pose.position.y = y;
     odom_msg.pose.pose.position.z = latlonmsg->height;
 
     pose_msg.header.stamp = node->now();
@@ -302,7 +306,19 @@ void pos_ll_callback(u16 sender_id, u8 len, u8 msg[], void *context)
 
     if (orientation_source.compare("gps")==0)
     {
+      pose_cov_msg.pose.pose = pose_msg.pose;
+      pose_cov_msg.header = pose_msg.header;
+      pose_cov_msg.pose.covariance[0] = 0.01;
+      pose_cov_msg.pose.covariance[7] = 0.01;
+      pose_cov_msg.pose.covariance[14] = 0.01;
+      pose_cov_msg.pose.covariance[21] = 0.01;
+      pose_cov_msg.pose.covariance[28] = 0.01;
+      pose_cov_msg.pose.covariance[35] = 0.01;
+
       pose_pub->publish(pose_msg);
+      pose_with_cov_pub->publish(pose_cov_msg);
+      odom_msg.pose.pose.position.x = pose_msg.pose.position.x;
+      odom_msg.pose.pose.position.y = pose_msg.pose.position.y;
       odom_msg.pose.pose.orientation.w = pose_msg.pose.orientation.w;
       odom_msg.pose.pose.orientation.x = pose_msg.pose.orientation.x;
       odom_msg.pose.pose.orientation.y = pose_msg.pose.orientation.y;
@@ -399,6 +415,12 @@ void time_callback(u16 sender_id, u8 len, u8 msg[], void *context)
 
   time_ref_pub->publish(time_ref_msg);
 }
+
+void vel_ned_cov_callback(u16 sender_id, u8 len, u8 msg[], void *context)
+{
+  msg_vel_ned_cov_t *vel_ned_cov = (msg_vel_ned_cov_t *)msg;
+}
+
 
 void orientation_euler_callback(u16 sender_id, u8 len, u8 msg[], void *context)
 {
@@ -556,6 +578,7 @@ int main(int argc, char * argv[])
   euler_pub = node->create_publisher<geometry_msgs::msg::Vector3>("rollpitchyaw", 100);
   euler_pub_fake = node->create_publisher<geometry_msgs::msg::Vector3>("rollpitchyaw_fake", 100);
   pose_pub = node->create_publisher<geometry_msgs::msg::PoseStamped>("current_pose", 100);
+  pose_with_cov_pub = node->create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>("current_pose_with_cov", 100);
   fake_pub = node->create_publisher<geometry_msgs::msg::PoseStamped>("current_pose_fake_orientation", 100);
   status_flag_pub = node->create_publisher<std_msgs::msg::UInt8>("status_flag", 100);
   status_string_pub = node->create_publisher<std_msgs::msg::String>("status_string", 100);
@@ -615,6 +638,7 @@ int main(int argc, char * argv[])
   sbp_register_callback(&sbp_state, SBP_MSG_IMU_AUX, imu_aux_callback, NULL, &imu_aux_callback_node);
   sbp_register_callback(&sbp_state, SBP_MSG_MAG_RAW, mag_callback, NULL, &mag_callback_node);
   sbp_register_callback(&sbp_state, SBP_MSG_GPS_TIME, time_callback, NULL, &time_callback_node);
+  sbp_register_callback(&sbp_state, SBP_MSG_VEL_NED_COV, vel_ned_cov_callback, NULL, &vel_ned_cov_callback_node);
   RCLCPP_INFO(node->get_logger(), "Success on %s:%d", tcp_ip_addr.c_str(), tcp_ip_port);
   
   while (rclcpp::ok())
