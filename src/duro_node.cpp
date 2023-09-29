@@ -23,6 +23,7 @@
 #include "geometry_msgs/msg/pose_with_covariance_stamped.hpp"
 #include "geometry_msgs/msg/transform_stamped.hpp"
 #include "tf2/LinearMath/Quaternion.h"
+#include "tf2/LinearMath/Matrix3x3.h"
 #include "tf2_ros/transform_broadcaster.h"
 #include "tf2_ros/static_transform_broadcaster.h"
 
@@ -286,6 +287,17 @@ void pos_ll_callback(u16 sender_id, u8 len, u8 msg[], void *context)
       tf2::Quaternion current_orientation(pose_msg.pose.orientation.x, pose_msg.pose.orientation.y, pose_msg.pose.orientation.z, pose_msg.pose.orientation.w);
       tf2::Quaternion start_orientation_offset(-start_pose.pose.orientation.x, -start_pose.pose.orientation.y, -start_pose.pose.orientation.z, start_pose.pose.orientation.w);
       
+      // quaternion start_orientation_offset to roll pitch yaw
+      double roll_so, pitch_so, yaw_so;
+      tf2::Matrix3x3(start_orientation_offset).getRPY(roll_so, pitch_so, yaw_so);
+
+      // rotate pose_msg.pose.position.x and y by start_orientation_offset Z (yaw) around origo
+      float rot_sin = sin(yaw_so);
+      float rot_cos = cos(yaw_so);
+      pose_msg.pose.position.x = pose_msg.pose.position.x * rot_cos - pose_msg.pose.position.y * rot_sin;
+      pose_msg.pose.position.y = pose_msg.pose.position.x * rot_sin + pose_msg.pose.position.y * rot_cos;
+
+      // rotate current_orientation by start_orientation_offset
       current_orientation = start_orientation_offset * current_orientation;
 
       current_orientation.normalize();
