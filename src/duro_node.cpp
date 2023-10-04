@@ -292,10 +292,14 @@ void pos_ll_callback(u16 sender_id, u8 len, u8 msg[], void *context)
       tf2::Matrix3x3(start_orientation_offset).getRPY(roll_so, pitch_so, yaw_so);
 
       // rotate pose_msg.pose.position.x and y by start_orientation_offset Z (yaw) around origo
-      float rot_sin = sin(yaw_so);
-      float rot_cos = cos(yaw_so);
-      pose_msg.pose.position.x = pose_msg.pose.position.x * rot_cos - pose_msg.pose.position.y * rot_sin;
-      pose_msg.pose.position.y = pose_msg.pose.position.x * rot_sin + pose_msg.pose.position.y * rot_cos;
+      double rot_sin = sin(yaw_so);
+      double rot_cos = cos(yaw_so);
+
+      double posX = pose_msg.pose.position.x;
+      double posY = pose_msg.pose.position.y;
+
+      pose_msg.pose.position.x = posX * rot_cos - posY * rot_sin;
+      pose_msg.pose.position.y = posX * rot_sin + posY * rot_cos;
 
       // rotate current_orientation by start_orientation_offset
       current_orientation = start_orientation_offset * current_orientation;
