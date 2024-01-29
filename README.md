@@ -51,7 +51,7 @@ This will create some files in `/usr/local/include/libsbp/` and in `/usr/local/l
 Clone the duro_gps_driver package into your Catkin workspace. 
 Navigate to the root of your Catkin workspace. Source your setup.bash file. Build the `duro_ros` package using Catkin:
 ```bash
-git clone https://github.com/szenergy/duro_gps_driver
+git clone https://github.com/szenergy/duro_gps_driver -b ros1
 catkin build duro_ros
 source devel/setup.bash
 ```
@@ -60,8 +60,7 @@ source devel/setup.bash
 Navigate to the root of your Colcon workspace. Source your setup.bash file. Build the `duro_ros` package using Colcon:
 ``` bash
 cd ~/ros2_ws/src
-git clone https://github.com/szenergy/duro_gps_driver
-git checkout ros2-humble
+git clone https://github.com/szenergy/duro_gps_driver -b ros2-humble
 cd ..
 colcon build --packages-select duro_gps_driver
 source install/local_setup.bash && source install/setup.bash
