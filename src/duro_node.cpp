@@ -174,7 +174,7 @@ namespace ins_modes
 */
 void pos_ll_callback(u16 sender_id, u8 len, u8 msg[], void *context)
 {
-  sbp_msg_pos_llh_t *latlonmsg = (sbp_msg_pos_llh_t *)msg;
+  msg_pos_llh_t *latlonmsg = (msg_pos_llh_t *)msg;
   // navsatfix (latlon) message over ROS
   navsatfix_msg.header.stamp = node->now();
   navsatfix_msg.header.frame_id = gps_receiver_frame;
@@ -396,7 +396,7 @@ void orientation_callback(u16 sender_id, u8 len, u8 msg[], void *context)
   // the MSG ID comes from eg #define SBP_MSG_ORIENT_QUAT 0x0220 --> 544
   if (!euler_based_orientation)
   {
-    sbp_msg_orient_quat_t *orimsg = (sbp_msg_orient_quat_t *)msg;
+    msg_orient_quat_t *orimsg = (msg_orient_quat_t *)msg;
 
     double w = orimsg->w * pow(2, -31);
     double x = orimsg->x * pow(2, -31);
@@ -418,7 +418,7 @@ void orientation_callback(u16 sender_id, u8 len, u8 msg[], void *context)
 
 void time_callback(u16 sender_id, u8 len, u8 msg[], void *context)
 {
-  sbp_msg_gps_time_t *time_gps = (sbp_msg_gps_time_t *)msg;
+  msg_gps_time_t *time_gps = (msg_gps_time_t *)msg;
   time_ref_msg.header.frame_id = "ros_time_frame";
   time_ref_msg.header.stamp = node->now();
 
@@ -434,14 +434,14 @@ void time_callback(u16 sender_id, u8 len, u8 msg[], void *context)
 
 void vel_ned_cov_callback(u16 sender_id, u8 len, u8 msg[], void *context)
 {
-  sbp_msg_vel_ned_cov_t *vel_ned_cov = (sbp_msg_vel_ned_cov_t *)msg;
+  msg_vel_ned_cov_t *vel_ned_cov = (msg_vel_ned_cov_t *)msg;
 }
 
 
 void orientation_euler_callback(u16 sender_id, u8 len, u8 msg[], void *context)
 {
   // enable MSG ID 545 in swift console
-  sbp_msg_orient_euler_t *orimsg = (sbp_msg_orient_euler_t *)msg;
+  msg_orient_euler_t *orimsg = (msg_orient_euler_t *)msg;
   euler_vector_msg.x = orimsg->roll / 57292374.; // 57292374: raw > microdegrees > rad constant
   euler_vector_msg.y = orimsg->pitch / 57292374.;
   euler_vector_msg.z = orimsg->yaw / 57292374.;
@@ -471,7 +471,7 @@ void imu_callback(u16 sender_id, u8 len, u8 msg[], void *context)
 {
   if (linear_acc_conf > 0)
   {
-    sbp_msg_imu_raw_t *imumsg = (sbp_msg_imu_raw_t *)msg;
+    msg_imu_raw_t *imumsg = (msg_imu_raw_t *)msg;
     imu_msg.header.stamp = node->now();
     imu_msg.header.frame_id = imu_frame;
     imu_msg.linear_acceleration.x = double(imumsg->acc_x) / linear_acc_conf * G_TO_M_S2;
@@ -520,7 +520,7 @@ namespace gyro_conf_modes
 
 void imu_aux_callback(u16 sender_id, u8 len, u8 msg[], void *context)
 {
-  sbp_msg_imu_aux_t *imuauxmsg = (sbp_msg_imu_aux_t *)msg;
+  msg_imu_aux_t *imuauxmsg = (msg_imu_aux_t *)msg;
   int acc_mode = (imuauxmsg->imu_conf & ACC_MODE_MASK) >> ACC_MODE_POSITION;
   int gyro_mode = (imuauxmsg->imu_conf & GYRO_MODE_MASK) >> GYRO_MODE_POSITION;
   //ROS_INFO("IMU %x gyro:%d acc:%d", imuauxmsg->imu_conf, gyro_mode, acc_mode);
@@ -566,7 +566,7 @@ void imu_aux_callback(u16 sender_id, u8 len, u8 msg[], void *context)
 
 void mag_callback(u16 sender_id, u8 len, u8 msg[], void *context)
 {
-  sbp_msg_mag_raw_t *magmsg = (sbp_msg_mag_raw_t *)msg;
+  msg_mag_raw_t *magmsg = (msg_mag_raw_t *)msg;
   mag_msg.header.stamp = node->now();
   mag_msg.header.frame_id = imu_frame;
 
