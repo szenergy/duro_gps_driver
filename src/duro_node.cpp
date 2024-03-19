@@ -55,6 +55,7 @@ rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr fake_pub;
 rclcpp::Publisher<std_msgs::msg::UInt8>::SharedPtr status_flag_pub;
 rclcpp::Publisher<std_msgs::msg::String>::SharedPtr status_string_pub;
 rclcpp::Publisher<sensor_msgs::msg::TimeReference>::SharedPtr time_ref_pub;
+rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr time_diff_pub;
 
 // ROS msgs
 sensor_msgs::msg::NavSatFix navsatfix_msg;
@@ -69,6 +70,7 @@ geometry_msgs::msg::PoseStamped fake_pose_msg;
 std_msgs::msg::UInt8 status_flag_msg;
 std_msgs::msg::String status_string_msg;
 sensor_msgs::msg::TimeReference time_ref_msg;
+std_msgs::msg::Float64 diff_msg; 
 geometry_msgs::msg::TransformStamped t, tf_static;
 std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
 std::shared_ptr<tf2_ros::StaticTransformBroadcaster> tf_static_broadcaster_;
@@ -426,10 +428,11 @@ void time_callback(u16 sender_id, u8 len, u8 msg[], void *context)
   long long int towtemp = time_gps->tow % 1000;
   long long int ttemp = (towtemp * 1000000 + time_gps->ns_residual) % 1000000000;
   time_ref_msg.time_ref.nanosec = ttemp;
-  time_ref_msg.time_ref.sec = time_gps->tow / 1000;
+  time_ref_msg.time_ref.sec = time_gps->tow / 1000 + time_gps->wn * 604800 + 315964782; 
   time_ref_msg.source = "gps_duro";
-
+  diff_msg.data = (time_ref_msg.header.stamp.sec - time_ref_msg.time_ref.sec) + (time_ref_msg.header.stamp.nanosec - time_ref_msg.time_ref.nanosec) % 1000000000 * 1e-9;
   time_ref_pub->publish(time_ref_msg);
+  time_diff_pub->publish(diff_msg);
 }
 
 void vel_ned_cov_callback(u16 sender_id, u8 len, u8 msg[], void *context)
@@ -599,6 +602,7 @@ int main(int argc, char * argv[])
   status_flag_pub = node->create_publisher<std_msgs::msg::UInt8>("status_flag", 100);
   status_string_pub = node->create_publisher<std_msgs::msg::String>("status_string", 100);
   time_ref_pub = node->create_publisher<sensor_msgs::msg::TimeReference>("time_ref", 100);
+  time_diff_pub = node->create_publisher<std_msgs::msg::Float64>("time_diff", 100);
   tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(node);
   tf_static_broadcaster_ = std::make_shared<tf2_ros::StaticTransformBroadcaster>(node);
 
