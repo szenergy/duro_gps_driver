@@ -34,13 +34,17 @@ link_directories("/usr/local/lib/")
 include_directories("/usr/local/include/")
 
 add_executable(duro_node src/duro_node.cpp src/utm.cpp src/fake_orientation.cpp)
-
 ament_target_dependencies(duro_node ${ament_dependencies})
 target_link_libraries(duro_node sbp)
 
+add_executable(create_dual_heading_msg src/create_dual_heading_msg.cpp)
+ament_target_dependencies(create_dual_heading_msg ${ament_dependencies})
+
 ## Install
 ## Mark executables and/or libraries for installation
-install(TARGETS duro_node
+install(TARGETS 
+  duro_node
+  create_dual_heading_msg
   RUNTIME DESTINATION lib/${PROJECT_NAME}
 )
 

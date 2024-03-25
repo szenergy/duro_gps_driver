@@ -15,6 +15,15 @@ zero_based_pose:
 euler_based_orientation:
 - true: euler based, not enabled by default, please enable SPB message SBP_MSG_ORIENT_EULER 0x0221 decimal 545
 - false: quaternion based, not enabled by default, please enable SPB message SBP_MSG_ORIENT_QUAT 0x0220 decimal 544
+publish_fake_orientation:
+- true: publishes fake orientation based on movement (default: true)
+- false: publishes only real orientation (imu calculated, if available)
+publish_imu_messages:
+- true: publishes imu messages (default: true)
+- false: does not publish imu messages
+publish_odom_messages:
+- true: publishes odometry messages (default: true)
+- false: does not publish odometry messages
 """
 def generate_launch_description():
     ld = LaunchDescription()
@@ -32,7 +41,10 @@ def generate_launch_description():
             {"z_coord_exact_height": 0.2},
             {"zero_based_pose": False},
             {"euler_based_orientation": True}           
-  
+            {"publish_fake_orientation": True}, # default: true
+            {"publish_imu_messages": True}, # default: true
+            {"publish_odom_messages": True}, # default: true
+            {"publish_tf": True}, # default: true
         ]
     )
     ld.add_action(duro_node)

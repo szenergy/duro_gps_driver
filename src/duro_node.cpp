@@ -27,8 +27,6 @@
 #include "tf2_ros/transform_broadcaster.h"
 #include "tf2_ros/static_transform_broadcaster.h"
 
-
-
 // libsbp - Swift Binary Protocol library headers
 #include <libsbp/sbp.h>
 #include <libsbp/system.h>
@@ -56,6 +54,7 @@ rclcpp::Publisher<std_msgs::msg::UInt8>::SharedPtr status_flag_pub;
 rclcpp::Publisher<std_msgs::msg::String>::SharedPtr status_string_pub;
 rclcpp::Publisher<sensor_msgs::msg::TimeReference>::SharedPtr time_ref_pub;
 rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr time_diff_pub;
+rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr baseline_pub;
 
 // ROS msgs
 sensor_msgs::msg::NavSatFix navsatfix_msg;
@@ -64,7 +63,7 @@ sensor_msgs::msg::Imu imu_msg;
 sensor_msgs::msg::MagneticField mag_msg;
 geometry_msgs::msg::Vector3 euler_vector_msg;
 geometry_msgs::msg::Vector3 euler_fake_vector_msg;
-geometry_msgs::msg::PoseStamped pose_msg;
+geometry_msgs::msg::PoseStamped pose_msg, pose_dual_heading_msg;
 geometry_msgs::msg::PoseWithCovarianceStamped pose_cov_msg;
 geometry_msgs::msg::PoseStamped fake_pose_msg;
 std_msgs::msg::UInt8 status_flag_msg;
@@ -86,6 +85,11 @@ std::string z_coord_ref_switch;
 std::string tf_frame_id, tf_child_frame_id;
 bool euler_based_orientation;
 bool zero_based_pose;
+bool baseline_orientation;
+bool publish_fake_orientation;
+bool publish_imu_messages;
+bool publish_odom_messages;
+bool publish_tf;
 float x_coord_offset, y_coord_offset;
 float z_coord_exact_height;
 
@@ -98,6 +102,7 @@ static sbp_msg_callbacks_node_t imu_aux_callback_node;
 static sbp_msg_callbacks_node_t mag_callback_node;
 static sbp_msg_callbacks_node_t time_callback_node;
 static sbp_msg_callbacks_node_t vel_ned_cov_callback_node;
+static sbp_msg_callbacks_node_t baseline_callback_node;
 sbp_state_t sbp_state;
 
 // Parameters
@@ -217,6 +222,10 @@ void pos_ll_callback(u16 sender_id, u8 len, u8 msg[], void *context)
     pose_msg.pose.position.x = x;
     pose_msg.pose.position.y = y;
 
+    pose_dual_heading_msg.header.stamp = node->now();
+    pose_dual_heading_msg.header.frame_id = utm_frame;
+
+
     t.header.stamp = node->get_clock()->now();
     t.header.frame_id = tf_frame_id;
     t.child_frame_id = tf_child_frame_id;
@@ -250,6 +259,8 @@ void pos_ll_callback(u16 sender_id, u8 len, u8 msg[], void *context)
     }
     pose_msg.pose.position.x += x_coord_offset;
     pose_msg.pose.position.y += y_coord_offset;
+    pose_dual_heading_msg.pose.position = pose_msg.pose.position;
+
     fake_pose_msg.header = pose_msg.header;
     fake_pose_msg.pose.position = pose_msg.pose.position;
     tf2::Quaternion fake_quat;
@@ -258,7 +269,9 @@ void pos_ll_callback(u16 sender_id, u8 len, u8 msg[], void *context)
     fake_pose_msg.pose.orientation.x = fake_quat.getX();
     fake_pose_msg.pose.orientation.y = fake_quat.getY();
     fake_pose_msg.pose.orientation.z = fake_quat.getZ();
-    fake_pub->publish(fake_pose_msg);
+    if(publish_fake_orientation){
+      fake_pub->publish(fake_pose_msg);
+    }
 
     if (first_run_position)
     {
@@ -278,7 +291,9 @@ void pos_ll_callback(u16 sender_id, u8 len, u8 msg[], void *context)
         // tf_static.transform.rotation.y = 0.0;
         // tf_static.transform.rotation.z = 0.0;
         // tf_static.transform.rotation.w = 1.0;
-        tf_static_broadcaster_->sendTransform(tf_static);
+        if(publish_tf){
+          tf_static_broadcaster_->sendTransform(tf_static);
+        }
       }
     }
     if(zero_based_pose)
@@ -341,7 +356,9 @@ void pos_ll_callback(u16 sender_id, u8 len, u8 msg[], void *context)
       odom_msg.pose.pose.orientation.x = pose_msg.pose.orientation.x;
       odom_msg.pose.pose.orientation.y = pose_msg.pose.orientation.y;
       odom_msg.pose.pose.orientation.z = pose_msg.pose.orientation.z;
-      odom_pub->publish(odom_msg);
+      if(publish_odom_messages){
+        odom_pub->publish(odom_msg);
+      }
     }
     else if (orientation_source.compare("odom")==0)
     {
@@ -412,8 +429,9 @@ void orientation_callback(u16 sender_id, u8 len, u8 msg[], void *context)
     pose_msg.pose.orientation.x = tf_aligned.y();      // left-handerd / right handed orientation
     pose_msg.pose.orientation.y = tf_aligned.x() * -1; // left-handerd / right handed orientation
     pose_msg.pose.orientation.z = tf_aligned.z();      // left-handerd / right handed orientation
-
-    tf_broadcaster_->sendTransform(t);
+    if(publish_tf){
+      tf_broadcaster_->sendTransform(t);
+    }
     
   }
 }
@@ -440,6 +458,30 @@ void vel_ned_cov_callback(u16 sender_id, u8 len, u8 msg[], void *context)
   msg_vel_ned_cov_t *vel_ned_cov = (msg_vel_ned_cov_t *)msg;
 }
 
+// Offset (bytes) Size (bytes)
+//     Format Units Name Description
+// 0 4 u32 ms tow GPS Time of Week
+// 4 4 u32 mdeg heading Heading
+// 8 1 u8 n_sats Number of satellites used in solution
+// 9 1 u8 flags Status flag
+
+void baseline_callback(u16 sender_id, u8 len, u8 msg[], void *context)
+{
+  // RCLCPP_INFO_STREAM(node->get_logger(), "Baseline heading callback");
+  msg_baseline_heading_t *baseline_heading = (msg_baseline_heading_t *)msg;
+  // RCLCPP_INFO_STREAM(node->get_logger(), "Baseline heading: " << baseline_heading->heading);
+  double dual_heading_deg = baseline_heading->heading / 1000.0;
+  // RPY to quaternion
+  tf2::Quaternion fromeuler;
+  fromeuler.setRPY(0.0, 0.0, dual_heading_deg * (M_1_PI / 180)); 
+  // fromeuler.setRPY(0.0, 0.0, (dual_heading_deg * -1) + M_PI_2); // left-handerd / right handed orientation
+  pose_dual_heading_msg.pose.orientation.w = fromeuler.getW();
+  pose_dual_heading_msg.pose.orientation.x = fromeuler.getX();
+  pose_dual_heading_msg.pose.orientation.y = fromeuler.getY();
+  pose_dual_heading_msg.pose.orientation.z = fromeuler.getZ();
+  baseline_pub->publish(pose_dual_heading_msg);
+}
+
 
 void orientation_euler_callback(u16 sender_id, u8 len, u8 msg[], void *context)
 {
@@ -450,7 +492,9 @@ void orientation_euler_callback(u16 sender_id, u8 len, u8 msg[], void *context)
   euler_vector_msg.z = orimsg->yaw / 57292374.;
   euler_fake_vector_msg.z = fake_ori.getOri();
   euler_pub->publish(euler_vector_msg);
-  euler_pub_fake->publish(euler_fake_vector_msg);
+  if(publish_fake_orientation){
+    euler_pub_fake->publish(euler_fake_vector_msg);
+  }
   if (euler_based_orientation)
   {
     tf2::Quaternion fromeuler;
@@ -489,7 +533,9 @@ void imu_callback(u16 sender_id, u8 len, u8 msg[], void *context)
     imu_msg.orientation.x = pose_msg.pose.orientation.x;
     imu_msg.orientation.y = pose_msg.pose.orientation.y;
     imu_msg.orientation.z = pose_msg.pose.orientation.z;
-    imu_pub->publish(imu_msg);
+    if(publish_imu_messages){
+      imu_pub->publish(imu_msg);
+    }
   }
 }
 
@@ -590,22 +636,6 @@ int main(int argc, char * argv[])
   rclcpp::init(argc, argv);
   node = rclcpp::Node::make_shared("duro_node");
 
-  navsatfix_pub = node->create_publisher<sensor_msgs::msg::NavSatFix>("navsatfix", 100);
-  odom_pub = node->create_publisher<nav_msgs::msg::Odometry>("odom", 100);
-  imu_pub = node->create_publisher<sensor_msgs::msg::Imu>("imu", 100);
-  mag_pub = node->create_publisher<sensor_msgs::msg::MagneticField>("mag", 100);
-  euler_pub = node->create_publisher<geometry_msgs::msg::Vector3>("rollpitchyaw", 100);
-  euler_pub_fake = node->create_publisher<geometry_msgs::msg::Vector3>("rollpitchyaw_fake", 100);
-  pose_pub = node->create_publisher<geometry_msgs::msg::PoseStamped>("current_pose", 100);
-  pose_with_cov_pub = node->create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>("current_pose_with_cov", 100);
-  fake_pub = node->create_publisher<geometry_msgs::msg::PoseStamped>("current_pose_fake_orientation", 100);
-  status_flag_pub = node->create_publisher<std_msgs::msg::UInt8>("status_flag", 100);
-  status_string_pub = node->create_publisher<std_msgs::msg::String>("status_string", 100);
-  time_ref_pub = node->create_publisher<sensor_msgs::msg::TimeReference>("time_ref", 100);
-  time_diff_pub = node->create_publisher<std_msgs::msg::Float64>("time_diff", 100);
-  tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(node);
-  tf_static_broadcaster_ = std::make_shared<tf2_ros::StaticTransformBroadcaster>(node);
-
   node->declare_parameter<std::string>("ip_address", "192.168.0.222");
   node->declare_parameter<int>("port", 55555);
   node->declare_parameter<std::string>("gps_receiver_frame", "duro");
@@ -620,6 +650,11 @@ int main(int argc, char * argv[])
   node->declare_parameter<std::string>("tf_frame_id", "map");
   node->declare_parameter<std::string>("tf_child_frame_id", "gps");
   node->declare_parameter<bool>("zero_based_pose", false);
+  node->declare_parameter<bool>("baseline_orientation", false); // dual antenna heading
+  node->declare_parameter<bool>("publish_fake_orientation", true);
+  node->declare_parameter<bool>("publish_imu_messages", true);
+  node->declare_parameter<bool>("publish_odom_messages", true);
+  node->declare_parameter<bool>("publish_tf", true);
   
 
   node->get_parameter("ip_address", tcp_ip_addr);
@@ -636,6 +671,38 @@ int main(int argc, char * argv[])
   node->get_parameter("tf_frame_id", tf_frame_id); 
   node->get_parameter("tf_child_frame_id", tf_child_frame_id); 
   node->get_parameter("zero_based_pose", zero_based_pose); 
+  node->get_parameter("baseline_orientation", baseline_orientation);
+  node->get_parameter("publish_fake_orientation", publish_fake_orientation);
+  node->get_parameter("publish_imu_messages", publish_imu_messages);
+  node->get_parameter("publish_odom_messages", publish_odom_messages);
+  node->get_parameter("publish_tf", publish_tf);
+
+  navsatfix_pub = node->create_publisher<sensor_msgs::msg::NavSatFix>("navsatfix", 100);
+  if(publish_odom_messages){
+    odom_pub = node->create_publisher<nav_msgs::msg::Odometry>("odom", 100);
+  }
+  if(publish_imu_messages){
+    imu_pub = node->create_publisher<sensor_msgs::msg::Imu>("imu", 100);
+  }
+  mag_pub = node->create_publisher<sensor_msgs::msg::MagneticField>("mag", 100);
+  euler_pub = node->create_publisher<geometry_msgs::msg::Vector3>("rollpitchyaw", 100);
+  pose_pub = node->create_publisher<geometry_msgs::msg::PoseStamped>("current_pose", 100);
+  pose_with_cov_pub = node->create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>("current_pose_with_cov", 100);
+  if(publish_fake_orientation){
+    fake_pub = node->create_publisher<geometry_msgs::msg::PoseStamped>("current_pose_fake_orientation", 100);
+    euler_pub_fake = node->create_publisher<geometry_msgs::msg::Vector3>("rollpitchyaw_fake", 100);
+  }
+  status_flag_pub = node->create_publisher<std_msgs::msg::UInt8>("status_flag", 100);
+  status_string_pub = node->create_publisher<std_msgs::msg::String>("status_string", 100);
+  time_ref_pub = node->create_publisher<sensor_msgs::msg::TimeReference>("time_ref", 100);
+  time_diff_pub = node->create_publisher<std_msgs::msg::Float64>("time_diff", 100);
+  tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(node);
+  tf_static_broadcaster_ = std::make_shared<tf2_ros::StaticTransformBroadcaster>(node);
+
+  if(baseline_orientation){
+    baseline_pub = node->create_publisher<geometry_msgs::msg::PoseStamped>("dual_antenna_heading", 100);
+  }
+
   
 
   RCLCPP_INFO(node->get_logger(), "Starting GPS Duro...");
@@ -659,8 +726,10 @@ int main(int argc, char * argv[])
   sbp_register_callback(&sbp_state, SBP_MSG_MAG_RAW, mag_callback, NULL, &mag_callback_node);
   sbp_register_callback(&sbp_state, SBP_MSG_GPS_TIME, time_callback, NULL, &time_callback_node);
   sbp_register_callback(&sbp_state, SBP_MSG_VEL_NED_COV, vel_ned_cov_callback, NULL, &vel_ned_cov_callback_node);
+  if(baseline_orientation){
+    sbp_register_callback(&sbp_state, SBP_MSG_BASELINE_HEADING, baseline_callback, NULL, &baseline_callback_node);
+  }
   RCLCPP_INFO(node->get_logger(), "Success on %s:%d", tcp_ip_addr.c_str(), tcp_ip_port);
-  
   while (rclcpp::ok())
   {
     sbp_process(&sbp_state, &socket_read);
