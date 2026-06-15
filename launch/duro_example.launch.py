@@ -40,7 +40,7 @@ def generate_launch_description():
             {"z_coord_ref_switch": "zero"},
             {"z_coord_exact_height": 0.2},
             {"zero_based_pose": False},
-            {"euler_based_orientation": True}           
+            {"euler_based_orientation": True},           
             {"publish_fake_orientation": True}, # default: true
             {"publish_imu_messages": True}, # default: true
             {"publish_odom_messages": True}, # default: true
